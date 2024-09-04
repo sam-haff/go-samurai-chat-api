@@ -1,0 +1,10 @@
+services:
+  api:
+    image: go-chat-app-api
+    ports:
+      - :8080
+    # not exposing ports, because all traffic goes through nginx-server to that server via compose network
+  nginx-server:
+    image: go-chat-app-api-reverse-proxy
+    ports:
+      - 8080:80
