@@ -2,3 +2,5 @@
 *firebase-adminsdk*
 *.env
 *.pem
+*.tar
+/images

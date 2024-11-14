@@ -1,5 +1,5 @@
 FROM nginx:stable-alpine
 
-COPY nginx/nginx.conf /etc/nginx/
+COPY nginx/nginx_debug.conf /etc/nginx/nginx.conf
 COPY certs/* /certs/
 COPY index.html /etc/nginx/html/

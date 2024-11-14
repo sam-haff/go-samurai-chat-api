@@ -2,15 +2,14 @@ services:
   api:
     image: go-chat-app-api
     hostname: go-chat-app-api
-    ports:
-      - :8080
     networks:
       - main-nw
     # not exposing ports, because all traffic goes through nginx-server to that server via compose network
   nginx-server:
     image: go-chat-app-api-reverse-proxy
     ports:
-      - 8080:80
+      - 80:80
+      - 443:443
     networks:
       - main-nw
 networks:
