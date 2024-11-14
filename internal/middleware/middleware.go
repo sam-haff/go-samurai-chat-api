@@ -34,7 +34,7 @@ func AuthMiddleware(ctx *gin.Context) {
 
 	if err != nil {
 		fmt.Printf("Unauthorized with: %s \n", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, comm.NewApiResponse("Invalid creads", comm.CodeNotAuthenticated))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, comm.NewApiResponse("Invalid creds", comm.CodeNotAuthenticated))
 
 		ctx.Set(CtxVarUserId, "")
 		return
