@@ -18,7 +18,7 @@ import (
 	"go-chat-app-api/internal/middleware"
 )
 
-func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) { //routers *gin.Engine) {
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
 	publicRoutes.POST("/register", handleRegister)
 
 	authRoutes.POST("/completeregister", handleCompleteRegister)

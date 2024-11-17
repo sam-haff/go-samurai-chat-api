@@ -16,7 +16,7 @@ import (
 )
 
 func GetRoutes() *gin.Engine {
-	authMock := SetupAuthMock()
+	authMock := setupPckgAuthMock()
 	testMongoInst, _ := database.NewTestMongoDBInstance()
 
 	routes := gin.Default()
@@ -29,7 +29,7 @@ func GetRoutes() *gin.Engine {
 }
 
 func Test_handeGetUid(t *testing.T) {
-	accs := GetTestingAccountsInfo()
+	accs := getPckgTestingAccountsInfo()
 
 	routes := GetRoutes()
 
@@ -41,9 +41,9 @@ func Test_handeGetUid(t *testing.T) {
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{"For existing user", accs[0].token, accs[0].username, accs[0].uid, http.StatusOK, comm.CodeSuccess},
-		{"For non-existing user", accs[0].token, "kkk", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
-		{"Unauthorized", "bpmbpm", accs[0].username, accs[0].uid, http.StatusUnauthorized, comm.CodeNotAuthenticated},
+		{"For existing user", accs[0].Token, accs[0].Username, accs[0].Uid, http.StatusOK, comm.CodeSuccess},
+		{"For non-existing user", accs[0].Token, "kkk", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
+		{"Unauthorized", "bpmbpm", accs[0].Username, accs[0].Uid, http.StatusUnauthorized, comm.CodeNotAuthenticated},
 	}
 
 	for _, test := range tests {
@@ -100,7 +100,7 @@ func Test_handeGetUid(t *testing.T) {
 }
 
 func Test_handleGetUser(t *testing.T) {
-	accs := GetTestingAccountsInfo()
+	accs := getPckgTestingAccountsInfo()
 
 	tests := []struct {
 		authToken              string
@@ -110,9 +110,9 @@ func Test_handleGetUser(t *testing.T) {
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{accs[0].token, accs[0].uid, accs[0].username, accs[0].email, http.StatusOK, comm.CodeSuccess},
-		{accs[0].token, "rrr", "", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
-		{"bpmbpm", accs[0].uid, accs[0].username, accs[0].email, http.StatusUnauthorized, comm.CodeNotAuthenticated},
+		{accs[0].Token, accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusOK, comm.CodeSuccess},
+		{accs[0].Token, "rrr", "", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
+		{"bpmbpm", accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusUnauthorized, comm.CodeNotAuthenticated},
 	}
 
 	routes := GetRoutes()

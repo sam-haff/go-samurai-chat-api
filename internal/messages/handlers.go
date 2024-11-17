@@ -19,7 +19,7 @@ import (
 	"go-chat-app-api/internal/users"
 )
 
-func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) { //routers *gin.Engine) {
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
 	authRoutes.POST("/addmessage", handleAddMessage)
 	authRoutes.POST("/chat", handleGetChat)
 }

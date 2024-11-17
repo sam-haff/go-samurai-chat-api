@@ -10,9 +10,9 @@ import (
 	"go-chat-app-api/internal/middleware"
 )
 
-func RegisterHandlers(authRouterGroup *gin.RouterGroup, publicRouterGroup *gin.RouterGroup) { //routers *gin.Engine) {
-	authRouterGroup.GET("/users/id/:uid", handleGetUser)
-	authRouterGroup.GET("/uid/:username", handleGetUid)
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
+	authRoutes.GET("/users/id/:uid", handleGetUser)
+	authRoutes.GET("/uid/:username", handleGetUid)
 }
 
 func handleGetUser(ctx *gin.Context) {
