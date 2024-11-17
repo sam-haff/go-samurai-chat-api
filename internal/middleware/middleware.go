@@ -8,19 +8,22 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/gin-gonic/gin"
 
+	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 )
 
-func InjectParams(app *firebase.App, mongoInst *database.MongoDBInstance) gin.HandlerFunc {
+func InjectParams(fbApp *firebase.App, fbAuth auth.Auth, mongoInst *database.MongoDBInstance) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		ctx.Set(CtxVarFirebaseApp, app)
+		ctx.Set(CtxVarFirebaseApp, fbApp)
 		ctx.Set(CtxVarMongoDBInst, mongoInst)
+		ctx.Set(CtxVarFirebaseAuth, fbAuth)
 	}
 }
 func AuthMiddleware(ctx *gin.Context) {
 	authHeader := ctx.GetHeader("Authorization")
 	authComps := strings.Split(authHeader, " ")
+
 	if len(authComps) != 2 && authComps[0] != "Bearer" {
 		fmt.Printf("Invalid header \n")
 
@@ -28,9 +31,8 @@ func AuthMiddleware(ctx *gin.Context) {
 		return
 	}
 
-	fbApp := ctx.MustGet(CtxVarFirebaseApp).(*firebase.App)
-	fbAuth, _ := fbApp.Auth(ctx)
-	authToken, err := fbAuth.VerifyIDToken(ctx, authComps[1])
+	fbAuth := ctx.MustGet(CtxVarFirebaseAuth).(auth.Auth)
+	authToken, err := fbAuth.VerifyToken(ctx, authComps[1])
 
 	if err != nil {
 		fmt.Printf("Unauthorized with: %s \n", err.Error())
@@ -40,6 +42,6 @@ func AuthMiddleware(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Set(CtxVarUserId, authToken.UID) //TODO: remove
+	ctx.Set(CtxVarUserId, authToken.UID)
 	ctx.Set(CtxVarAuthToken, authToken)
 }

@@ -7,8 +7,15 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/gin-gonic/gin"
 
+	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/middleware"
 )
+
+func RegisterHandlers(routers *gin.Engine) {
+	routers.GET("/hi", func(ctx *gin.Context) {
+		comm.GenericOK(ctx)
+	})
+}
 
 func handleCheck(ctx *gin.Context) {
 	fmt.Printf("Handle check... \n")

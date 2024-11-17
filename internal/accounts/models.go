@@ -1,4 +1,4 @@
-package users
+package accounts
 
 type UserData struct {
 	Id       string            `json:"uid" bson:"_id"`

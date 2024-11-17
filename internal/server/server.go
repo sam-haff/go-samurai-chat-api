@@ -4,6 +4,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/gin-gonic/gin"
 
+	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/messages"
@@ -14,9 +15,12 @@ import (
 func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) error {
 	routers := gin.Default()
 
-	routers.Use(middleware.InjectParams(fbApp, mongoInst))
+	fbAuth := auth.NewAuth(fbApp)
+	routers.Use(middleware.InjectParams(fbApp, fbAuth, mongoInst))
 
-	auth.RegisterHandlers(routers)
+	RegisterHandlers(routers)
+
+	accounts.RegisterHandlers(routers)
 	users.RegisterHandlers(routers)
 	messages.RegisterHandlers(routers)
 

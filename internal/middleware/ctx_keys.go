@@ -1,8 +1,9 @@
 package middleware
 
 const (
-	CtxVarMongoDBInst = "mongo-db"
-	CtxVarFirebaseApp = "fb-app"
-	CtxVarUserId      = "user-id"
-	CtxVarAuthToken   = "auth-token"
+	CtxVarMongoDBInst  = "mongo-db"
+	CtxVarFirebaseApp  = "fb-app"
+	CtxVarFirebaseAuth = "fb-auth"
+	CtxVarUserId       = "user-id"
+	CtxVarAuthToken    = "auth-token"
 )

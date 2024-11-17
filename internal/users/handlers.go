@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 
+	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/middleware"
@@ -21,7 +22,7 @@ func handleGetUser(ctx *gin.Context) {
 	}
 	targetUserId := ctx.Param("uid")
 
-	userData := UserData{}
+	userData := accounts.UserData{}
 	if !GetUserData(ctx, targetUserId, &userData) {
 		return
 	}
@@ -39,7 +40,7 @@ func handleGetUid(ctx *gin.Context) {
 	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
 	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
 
-	usernameData := UsernameData{}
+	usernameData := accounts.UsernameData{}
 
 	filter := bson.D{{Key: "_id", Value: targetUsername}}
 	res := usernamesCollection.FindOne(ctx, filter)

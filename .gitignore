@@ -3,4 +3,5 @@
 *.env
 *.pem
 *.tar
+*.out
 /images

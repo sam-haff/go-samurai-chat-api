@@ -42,7 +42,13 @@ type ApiResponseResultWithJson struct {
 	Code int         `json:"code"`
 	Obj  interface{} `json:"obj"`
 }
+type ApiResponseResultWith[T any] struct {
+	Msg  string `json:"msg"`
+	Code int    `json:"code"`
+	Obj  T      `json:"obj"`
+}
 
+type ApiResponseWith[T any] ApiResponse[ApiResponseResultWith[T]]
 type ApiResponseWithJson ApiResponse[ApiResponseResultWithJson]
 type ApiResponsePlain ApiResponse[ApiResponseResult]
 
@@ -99,7 +105,7 @@ func AbortGenericInvalidArgs(ctx *gin.Context) {
 	ctx.AbortWithStatusJSON(http.StatusBadRequest, NewApiResponse("Invalid args", CodeInvalidArgs))
 }
 func AbortUnauthorized(ctx *gin.Context, msg string, code int) {
-	ctx.AbortWithStatusJSON(http.StatusBadRequest, NewApiResponse(msg, code))
+	ctx.AbortWithStatusJSON(http.StatusUnauthorized, NewApiResponse(msg, code))
 }
 func AbortFailedBinding(ctx *gin.Context, err error) {
 	if err != nil {

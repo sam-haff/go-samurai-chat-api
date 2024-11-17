@@ -1,6 +1,7 @@
-package auth
+package accounts
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,6 @@ import (
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/middleware"
-	"go-chat-app-api/internal/users"
 )
 
 func RegisterHandlers(routers *gin.Engine) {
@@ -25,8 +25,7 @@ func RegisterHandlers(routers *gin.Engine) {
 	routers.POST("/updateavatar", middleware.AuthMiddleware, handleUpdateAvatar)
 }
 
-func createDBUserRecords(ctx *gin.Context, uid string, username string, email string) bool {
-	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+func CreateDBUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, username string, email string) error {
 	usersCollection := mongoInst.Collection(database.UsersCollection)
 	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
 
@@ -35,15 +34,14 @@ func createDBUserRecords(ctx *gin.Context, uid string, username string, email st
 	session, err := mongoInst.Client.StartSession()
 	if err != nil {
 		fmt.Printf("Failed to start session \n")
-		comm.AbortBadRequest(ctx, "Failed to start tx", comm.CodeCantCreateAuthUser)
-		return false
+		return fmt.Errorf("Failed to start tx")
 	}
 	defer session.EndSession(ctx)
 
 	_, err = session.WithTransaction(
 		ctx,
 		func(ctx mongo.SessionContext) (interface{}, error) {
-			_, err := usersCollection.InsertOne(ctx, users.UserData{
+			_, err := usersCollection.InsertOne(ctx, UserData{
 				Id:       uid,
 				Username: username,
 				Email:    email,
@@ -51,7 +49,7 @@ func createDBUserRecords(ctx *gin.Context, uid string, username string, email st
 			if err != nil {
 				return nil, err
 			}
-			_, err = usernamesCollection.InsertOne(ctx, users.UsernameData{
+			_, err = usernamesCollection.InsertOne(ctx, UsernameData{
 				Id:     username,
 				UserID: uid,
 			})
@@ -63,9 +61,19 @@ func createDBUserRecords(ctx *gin.Context, uid string, username string, email st
 	if err != nil {
 
 		fmt.Printf("Tx failed with error: %s\n", err.Error())
-		comm.AbortBadRequest(ctx, "Failed to create db records", comm.CodeCantCreateAuthUser)
-		return false
+		return fmt.Errorf("Failed to create db records")
 	}
+
+	return nil
+}
+
+func CreateDBUserRecords(ctx *gin.Context, uid string, username string, email string) bool {
+	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+	if err := CreateDBUserRecordsInternal(ctx, mongoInst, uid, ctx.Request.UserAgent(), email); err != nil {
+		comm.AbortBadRequest(ctx, err.Error(), comm.CodeCantCreateAuthUser)
+	}
+
 	return true
 }
 
@@ -117,7 +125,7 @@ func handleRegister(ctx *gin.Context) {
 		return
 	}
 
-	if !createDBUserRecords(ctx, userRecord.UID, params.Username, params.Email) {
+	if !CreateDBUserRecords(ctx, userRecord.UID, params.Username, params.Email) {
 		return
 	}
 
@@ -194,7 +202,7 @@ func handleCompleteRegister(ctx *gin.Context) {
 		return
 	}
 
-	if !createDBUserRecords(ctx, authToken.UID, params.Username, email) {
+	if !CreateDBUserRecords(ctx, authToken.UID, params.Username, email) {
 		//all responces are handled inside func
 		return
 	}
@@ -232,7 +240,7 @@ func handleRegisterToken(ctx *gin.Context) {
 		return
 	}
 
-	userData := users.UserData{}
+	userData := UserData{}
 	err = res.Decode(&userData)
 	if err != nil {
 		comm.AbortBadRequest(ctx, "Failed to device data from db", comm.CodeInvalidArgs)

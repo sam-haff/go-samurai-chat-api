@@ -1,6 +1,7 @@
 package users
 
 import (
+	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/middleware"
@@ -9,7 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func GetUserData(ctx *gin.Context, id string, data *UserData) bool {
+func GetUserData(ctx *gin.Context, id string, data *accounts.UserData) bool {
 	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
 	usersCollection := mongoInst.Collection(database.UsersCollection)
 
@@ -17,7 +18,7 @@ func GetUserData(ctx *gin.Context, id string, data *UserData) bool {
 
 	res := usersCollection.FindOne(ctx, filter)
 	if res.Err() != nil {
-		comm.AbortBadRequest(ctx, "Invalid user or user is not correctly registered", comm.CodeNotAuthenticated)
+		comm.AbortBadRequest(ctx, "Invalid user or user is not correctly registered", comm.CodeUserNotRegistered)
 		return false
 	}
 	if data != nil {

@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/middleware"
@@ -123,11 +124,11 @@ func handleAddMessage(ctx *gin.Context) {
 
 	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
-	fromUserData := users.UserData{}
+	fromUserData := accounts.UserData{}
 	if !users.GetUserData(ctx, userId, &fromUserData) {
 		return
 	}
-	toUserData := users.UserData{}
+	toUserData := accounts.UserData{}
 	if !users.GetUserData(ctx, params.ToId, &toUserData) {
 		return
 	}
