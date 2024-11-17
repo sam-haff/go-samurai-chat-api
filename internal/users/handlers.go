@@ -10,16 +10,12 @@ import (
 	"go-chat-app-api/internal/middleware"
 )
 
-func RegisterHandlers(routers *gin.Engine) {
-	routers.GET("/users/id/:uid", middleware.AuthMiddleware, handleGetUser)
-	routers.GET("/uid/:username", middleware.AuthMiddleware, handleGetUid)
+func RegisterHandlers(authRouterGroup *gin.RouterGroup, publicRouterGroup *gin.RouterGroup) { //routers *gin.Engine) {
+	authRouterGroup.GET("/users/id/:uid", handleGetUser)
+	authRouterGroup.GET("/uid/:username", handleGetUid)
 }
 
 func handleGetUser(ctx *gin.Context) {
-	userId := ctx.MustGet(middleware.CtxVarUserId).(string)
-	if len(userId) == 0 {
-		return
-	}
 	targetUserId := ctx.Param("uid")
 
 	userData := accounts.UserData{}
@@ -30,11 +26,6 @@ func handleGetUser(ctx *gin.Context) {
 	comm.GenericOKJSON(ctx, userData)
 }
 func handleGetUid(ctx *gin.Context) {
-	userId := ctx.MustGet(middleware.CtxVarUserId).(string)
-	if len(userId) == 0 {
-		return
-	}
-
 	targetUsername := ctx.Param("username")
 
 	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)

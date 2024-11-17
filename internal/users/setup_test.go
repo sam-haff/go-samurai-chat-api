@@ -57,11 +57,10 @@ func SetupTestingAccounts() {
 
 	mongoInst, err := database.NewTestMongoDBInstance()
 
-	fmt.Print("Connected to mongodb!\n")
-
 	if err != nil {
 		log.Fatalf("Failed to connect to test database with %s", err.Error())
 	}
+	fmt.Print("Connected to mongodb!")
 
 	ctx := context.Background()
 

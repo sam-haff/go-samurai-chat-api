@@ -15,10 +15,92 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Test_handleGetUser(t *testing.T) {
-	accs := GetTestingAccountsInfo()
+func GetRoutes() *gin.Engine {
 	authMock := SetupAuthMock()
 	testMongoInst, _ := database.NewTestMongoDBInstance()
+
+	routes := gin.Default()
+	routes.Use(middleware.InjectParams(nil, authMock, testMongoInst))
+	authRoutes := routes.Group("/", middleware.AuthMiddleware)
+	publicRoutes := routes.Group("/")
+	RegisterHandlers(authRoutes, publicRoutes)
+
+	return routes
+}
+
+func Test_handeGetUid(t *testing.T) {
+	accs := GetTestingAccountsInfo()
+
+	routes := GetRoutes()
+
+	tests := []struct {
+		name                   string
+		authToken              string
+		username               string
+		expectedUid            string
+		expectedStatus         int
+		expectedCommStatusCode int
+	}{
+		{"For existing user", accs[0].token, accs[0].username, accs[0].uid, http.StatusOK, comm.CodeSuccess},
+		{"For non-existing user", accs[0].token, "kkk", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
+		{"Unauthorized", "bpmbpm", accs[0].username, accs[0].uid, http.StatusUnauthorized, comm.CodeNotAuthenticated},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reqUrl := fmt.Sprintf("/uid/%s", test.username)
+			req, _ := http.NewRequest("GET", reqUrl, nil)
+			req.Header.Set("Authorization", "Bearer "+test.authToken)
+			rec := httptest.NewRecorder()
+
+			routes.ServeHTTP(rec, req)
+
+			resp := rec.Result()
+			if resp.StatusCode != test.expectedStatus {
+
+				t.Errorf("Wrong status, expected %d, got %d", test.expectedStatus, resp.StatusCode)
+			}
+			success := resp.StatusCode == 200
+
+			respBody, _ := io.ReadAll(resp.Body)
+
+			if success {
+				respJson := comm.ApiResponseWith[accounts.UsernameData]{}
+
+				err := json.Unmarshal(respBody, &respJson)
+				if err != nil {
+					t.Error("Invalid response format")
+				}
+
+				if respJson.Result.Code != test.expectedCommStatusCode {
+					t.Errorf("Invalid response comm status code, expected %d, got %d", test.expectedCommStatusCode, respJson.Result.Code)
+				}
+
+				username := respJson.Result.Obj
+				if username.UserID != test.expectedUid {
+					t.Errorf("Got wrong uid, expected %s, got %s", test.expectedUid, username.UserID)
+				}
+				if username.Id != test.username {
+					t.Errorf("Got wrog username, expected %s, got %s", test.username, username.Id)
+				}
+			} else {
+				respJson := comm.ApiResponsePlain{}
+
+				err := json.Unmarshal(respBody, &respJson)
+				if err != nil {
+					t.Error("Invalid response format")
+				}
+
+				if respJson.Result.Code != test.expectedCommStatusCode {
+					t.Errorf("Invalid response comm status code, expected %d, got %d", test.expectedCommStatusCode, respJson.Result.Code)
+				}
+			}
+		})
+	}
+}
+
+func Test_handleGetUser(t *testing.T) {
+	accs := GetTestingAccountsInfo()
 
 	tests := []struct {
 		authToken              string
@@ -33,17 +115,15 @@ func Test_handleGetUser(t *testing.T) {
 		{"bpmbpm", accs[0].uid, accs[0].username, accs[0].email, http.StatusUnauthorized, comm.CodeNotAuthenticated},
 	}
 
-	routers := gin.Default()
-	routers.GET("/:uid", middleware.InjectParams(nil, authMock, testMongoInst), middleware.AuthMiddleware, handleGetUser)
+	routes := GetRoutes()
 
 	for _, test := range tests {
-		t.Log("Test: " + test.authToken)
-		reqUrl := fmt.Sprintf("/%s", test.uid)
+		reqUrl := fmt.Sprintf("/users/id/%s", test.uid)
 		req, _ := http.NewRequest("GET", reqUrl, nil)
 		req.Header.Set("Authorization", "Bearer "+test.authToken)
 		rec := httptest.NewRecorder()
 
-		routers.ServeHTTP(rec, req)
+		routes.ServeHTTP(rec, req)
 
 		resp := rec.Result()
 		if resp.StatusCode != test.expectedStatus {

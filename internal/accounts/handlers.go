@@ -18,11 +18,12 @@ import (
 	"go-chat-app-api/internal/middleware"
 )
 
-func RegisterHandlers(routers *gin.Engine) {
-	routers.POST("/register", handleRegister)
-	routers.POST("/completeregister", middleware.AuthMiddleware, handleCompleteRegister)
-	routers.POST("/registertoken", middleware.AuthMiddleware, handleRegisterToken)
-	routers.POST("/updateavatar", middleware.AuthMiddleware, handleUpdateAvatar)
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) { //routers *gin.Engine) {
+	publicRoutes.POST("/register", handleRegister)
+
+	authRoutes.POST("/completeregister", handleCompleteRegister)
+	authRoutes.POST("/registertoken", handleRegisterToken)
+	authRoutes.POST("/updateavatar", handleUpdateAvatar)
 }
 
 func CreateDBUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, username string, email string) error {

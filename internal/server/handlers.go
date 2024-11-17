@@ -11,8 +11,8 @@ import (
 	"go-chat-app-api/internal/middleware"
 )
 
-func RegisterHandlers(routers *gin.Engine) {
-	routers.GET("/hi", func(ctx *gin.Context) {
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) { //routers *gin.Engine) {
+	publicRoutes.GET("/hi", func(ctx *gin.Context) {
 		comm.GenericOK(ctx)
 	})
 }

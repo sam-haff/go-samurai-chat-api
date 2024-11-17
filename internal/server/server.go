@@ -13,16 +13,19 @@ import (
 )
 
 func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) error {
+	fbAuth := auth.NewAuth(fbApp)
+
 	routers := gin.Default()
 
-	fbAuth := auth.NewAuth(fbApp)
 	routers.Use(middleware.InjectParams(fbApp, fbAuth, mongoInst))
+	authRoutes := routers.Group("/", middleware.AuthMiddleware)
+	publicRoutes := routers.Group("/")
 
-	RegisterHandlers(routers)
+	RegisterHandlers(authRoutes, publicRoutes)
 
-	accounts.RegisterHandlers(routers)
-	users.RegisterHandlers(routers)
-	messages.RegisterHandlers(routers)
+	accounts.RegisterHandlers(authRoutes, publicRoutes)
+	users.RegisterHandlers(authRoutes, publicRoutes)
+	messages.RegisterHandlers(authRoutes, publicRoutes)
 
 	routers.Run(addr)
 

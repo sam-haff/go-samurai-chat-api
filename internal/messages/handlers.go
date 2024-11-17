@@ -19,9 +19,9 @@ import (
 	"go-chat-app-api/internal/users"
 )
 
-func RegisterHandlers(routers *gin.Engine) {
-	routers.POST("/addmessage", middleware.AuthMiddleware, handleAddMessage)
-	routers.POST("/chat", middleware.AuthMiddleware, handleGetChat)
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) { //routers *gin.Engine) {
+	authRoutes.POST("/addmessage", handleAddMessage)
+	authRoutes.POST("/chat", handleGetChat)
 }
 
 type AddMessageParams struct {
