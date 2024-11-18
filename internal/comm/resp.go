@@ -108,7 +108,7 @@ func AbortUnauthorized(ctx *gin.Context, msg string, code int) {
 	ctx.AbortWithStatusJSON(http.StatusUnauthorized, NewApiResponse(msg, code))
 }
 func AbortFailedBinding(ctx *gin.Context, err error) {
-	if err != nil {
+	if err == nil {
 		return
 	}
 	respMsg := "Invalid args"

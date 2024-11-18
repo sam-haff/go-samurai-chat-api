@@ -15,7 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetRoutes() *gin.Engine {
+func getRoutes() *gin.Engine {
 	authMock := setupPckgAuthMock()
 	testMongoInst, _ := database.NewTestMongoDBInstance()
 
@@ -31,7 +31,7 @@ func GetRoutes() *gin.Engine {
 func Test_handeGetUid(t *testing.T) {
 	accs := getPckgTestingAccountsInfo()
 
-	routes := GetRoutes()
+	routes := getRoutes()
 
 	tests := []struct {
 		name                   string
@@ -102,6 +102,7 @@ func Test_handeGetUid(t *testing.T) {
 func Test_handleGetUser(t *testing.T) {
 	accs := getPckgTestingAccountsInfo()
 
+	//TODO: add test names
 	tests := []struct {
 		authToken              string
 		uid                    string
@@ -115,7 +116,7 @@ func Test_handleGetUser(t *testing.T) {
 		{"bpmbpm", accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusUnauthorized, comm.CodeNotAuthenticated},
 	}
 
-	routes := GetRoutes()
+	routes := getRoutes()
 
 	for _, test := range tests {
 		reqUrl := fmt.Sprintf("/users/id/%s", test.uid)

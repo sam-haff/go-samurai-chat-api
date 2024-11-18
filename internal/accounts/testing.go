@@ -3,9 +3,10 @@ package accounts
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/database"
-	"log"
 )
 
 func SetupTestingAccounts(accs []auth.TestingAccount) {
@@ -19,6 +20,6 @@ func SetupTestingAccounts(accs []auth.TestingAccount) {
 	ctx := context.Background()
 
 	for _, acc := range accs {
-		CreateDBUserRecordsInternal(ctx, mongoInst, acc.Uid, acc.Username, acc.Email)
+		createDBUserRecordsInternal(ctx, mongoInst, acc.Uid, acc.Username, acc.Email)
 	}
 }

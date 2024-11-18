@@ -3,16 +3,16 @@ package accounts
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/auth"
+	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
+	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/middleware"
@@ -26,7 +26,7 @@ func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup
 	authRoutes.POST("/updateavatar", handleUpdateAvatar)
 }
 
-func CreateDBUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, username string, email string) error {
+func createDBUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, username string, email string) error {
 	usersCollection := mongoInst.Collection(database.UsersCollection)
 	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
 
@@ -38,7 +38,6 @@ func CreateDBUserRecordsInternal(ctx context.Context, mongoInst *database.MongoD
 		return fmt.Errorf("Failed to start tx")
 	}
 	defer session.EndSession(ctx)
-
 	_, err = session.WithTransaction(
 		ctx,
 		func(ctx mongo.SessionContext) (interface{}, error) {
@@ -71,15 +70,17 @@ func CreateDBUserRecordsInternal(ctx context.Context, mongoInst *database.MongoD
 func CreateDBUserRecords(ctx *gin.Context, uid string, username string, email string) bool {
 	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
-	if err := CreateDBUserRecordsInternal(ctx, mongoInst, uid, ctx.Request.UserAgent(), email); err != nil {
+	if err := createDBUserRecordsInternal(ctx, mongoInst, uid, username, email); err != nil {
 		comm.AbortBadRequest(ctx, err.Error(), comm.CodeCantCreateAuthUser)
+		return false
 	}
 
 	return true
 }
 
+// TODO: remove trailing spaces and check for correct username format
 type RegisterParams struct {
-	Username string `json:"username" binding:"min=4,required"`
+	Username string `json:"username" binding:"min=4,alphanum,required"`
 	Email    string `json:"email" binding:"email,required"`
 	Pwd      string `json:"pwd" binding:"min=6,required"`
 }
@@ -93,7 +94,7 @@ func handleRegister(ctx *gin.Context) {
 		return
 	}
 
-	fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
+	//fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
 	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
 	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
@@ -105,14 +106,10 @@ func handleRegister(ctx *gin.Context) {
 		return
 	}
 
-	if strings.Contains(params.Username, " ") || len(params.Username) < 4 {
-		comm.AbortBadRequest(ctx, "Invalid username", comm.CodeUsernameFormatNotValid)
-		return
-	}
+	//fbAuth, _ := fbApp.Auth(ctx)
+	fbAuth, _ := ctx.MustGet(middleware.CtxVarFirebaseAuth).(auth.Auth)
 
-	fbAuth, _ := fbApp.Auth(ctx)
-
-	userCreateParams := (&auth.UserToCreate{}).
+	userCreateParams := (&fbauth.UserToCreate{}).
 		Email(params.Email).
 		EmailVerified(false).
 		Password(params.Pwd).
@@ -122,7 +119,6 @@ func handleRegister(ctx *gin.Context) {
 	if err != nil {
 		respMsg := fmt.Sprintf("Backend failed to create new user with %s", err.Error())
 		comm.AbortBadRequest(ctx, respMsg, comm.CodeCantCreateAuthUser)
-		//ctx.String(400, apiResponse(fmt.Sprintf("Backend failed to create new user with %s", err.Error()), CodeCantCreateAuthUser))
 		return
 	}
 
@@ -134,7 +130,7 @@ func handleRegister(ctx *gin.Context) {
 }
 
 type UpdateAvatarParams struct {
-	ImgUrl string `json:"img_url" binding:"gte=1,required"`
+	ImgUrl string `json:"img_url" binding:"gte=1,lte=1024,required"`
 }
 
 func handleUpdateAvatar(ctx *gin.Context) {
@@ -180,7 +176,7 @@ func handleCompleteRegister(ctx *gin.Context) {
 		return // not authenticated
 	}
 
-	authToken := ctx.MustGet(middleware.CtxVarAuthToken).(*auth.Token)
+	authToken := ctx.MustGet(middleware.CtxVarAuthToken).(*fbauth.Token)
 	fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
 	auth, _ := fbApp.Auth(ctx)
 	userRecord, err := auth.GetUser(ctx, authToken.UID)

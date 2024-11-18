@@ -1,9 +1,10 @@
 package accounts
 
 import (
-	"go-chat-app-api/internal/auth"
 	"os"
 	"testing"
+
+	"go-chat-app-api/internal/auth"
 )
 
 func TestMain(m *testing.M) {
@@ -23,5 +24,7 @@ func setupPckgTestingAccounts() {
 	SetupTestingAccounts(accs)
 }
 func setupPckgAuthMock() *auth.MockFbAuth {
-	return auth.SetupAuthMock(pckgPrefix)
+	authMock := auth.SetupAuthMock(pckgPrefix)
+
+	return authMock
 }

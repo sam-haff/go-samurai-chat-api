@@ -58,6 +58,7 @@ func Test_AuthMiddleware(t *testing.T) {
 			if !ok {
 				t.Error("Token is set incorrectly")
 			}
+
 			v, exists = ctx.Get(CtxVarUserId)
 			if exists != test.expectedInCtx {
 				if exists {

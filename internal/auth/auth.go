@@ -10,6 +10,7 @@ import (
 // for now only fb auth
 type Auth interface {
 	VerifyToken(ctx context.Context, token string) (*fbauth.Token, error)
+	CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error)
 }
 
 type FbAuth struct {
@@ -23,6 +24,9 @@ func NewAuth(fbApp *firebase.App) Auth {
 
 func (v FbAuth) VerifyToken(ctx context.Context, token string) (*fbauth.Token, error) {
 	fbToken, err := v.impl.VerifyIDToken(ctx, token)
-
 	return fbToken, err
+}
+func (v FbAuth) CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error) {
+	rec, err := v.impl.CreateUser(ctx, user)
+	return rec, err
 }

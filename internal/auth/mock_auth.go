@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"log"
 
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/stretchr/testify/mock"
@@ -20,6 +21,17 @@ func (v *MockFbAuth) VerifyToken(ctx context.Context, token string) (*fbauth.Tok
 	}
 	return args.Get(0).(*fbauth.Token), args.Error(1)
 }
+func (v *MockFbAuth) CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error) {
+	if user == nil {
+		log.Fatal("Cant be")
+	}
+	args := v.Called(ctx, user)
+	arg0 := args.Get(0)
+	if arg0 == nil {
+		return nil, args.Error(1)
+	}
+	return arg0.(*fbauth.UserRecord), args.Error(1)
+}
 
 type TestingAccount struct {
 	Username string
@@ -30,8 +42,8 @@ type TestingAccount struct {
 
 func GetTestingAccountsInfo(pckgPrefix string) []TestingAccount {
 	return []TestingAccount{
-		{pckgPrefix + "_testingacc1", pckgPrefix + "_testingacc1@t.com", pckgPrefix + "abcde", pckgPrefix + "-uid1"},
-		{pckgPrefix + "_testingacc2", pckgPrefix + "_testingacc2@t.com", pckgPrefix + "ghjkl", pckgPrefix + "-uid2"},
+		{pckgPrefix + "testingacc1", pckgPrefix + "_testingacc1@t.com", pckgPrefix + "abcde", pckgPrefix + "-uid1"},
+		{pckgPrefix + "testingacc2", pckgPrefix + "_testingacc2@t.com", pckgPrefix + "ghjkl", pckgPrefix + "-uid2"},
 	}
 }
 
