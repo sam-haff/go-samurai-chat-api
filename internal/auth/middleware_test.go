@@ -1,4 +1,4 @@
-package middleware
+package auth
 
 import (
 	"fmt"
@@ -9,8 +9,6 @@ import (
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/mock"
-
-	"go-chat-app-api/internal/auth"
 )
 
 func Test_AuthMiddleware(t *testing.T) {
@@ -31,7 +29,7 @@ func Test_AuthMiddleware(t *testing.T) {
 
 	for _, test := range tests {
 
-		var authObj *auth.MockFbAuth = &auth.MockFbAuth{}
+		var authObj *MockFbAuth = &MockFbAuth{}
 		var token fbauth.Token
 		token.UID = test.uid
 		if test.expectedVerifyCall {
@@ -44,7 +42,7 @@ func Test_AuthMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		routers := gin.Default()
-		routers.Use(InjectParams(nil, authObj, nil))
+		routers.Use(InjectAuth(authObj))
 		routers.GET("/test", AuthMiddleware, func(ctx *gin.Context) {
 			v, exists := ctx.Get(CtxVarAuthToken)
 			if exists != test.expectedInCtx {

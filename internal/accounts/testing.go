@@ -20,6 +20,6 @@ func SetupTestingAccounts(accs []auth.TestingAccount) {
 	ctx := context.Background()
 
 	for _, acc := range accs {
-		createDBUserRecordsInternal(ctx, mongoInst, acc.Uid, acc.Username, acc.Email)
+		dbCreateUserRecordsInternal(ctx, mongoInst, acc.Uid, acc.Username, acc.Email)
 	}
 }

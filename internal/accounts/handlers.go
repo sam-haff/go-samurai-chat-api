@@ -1,16 +1,12 @@
 package accounts
 
 import (
-	"context"
 	"fmt"
 
 	firebase "firebase.google.com/go/v4"
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
@@ -24,58 +20,41 @@ func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup
 	authRoutes.POST("/completeregister", handleCompleteRegister)
 	authRoutes.POST("/registertoken", handleRegisterToken)
 	authRoutes.POST("/updateavatar", handleUpdateAvatar)
-}
 
-func createDBUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, username string, email string) error {
-	usersCollection := mongoInst.Collection(database.UsersCollection)
-	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
+	authRoutes.GET("/users/id/:uid", handleGetUser)
+	authRoutes.GET("/uid/:username", handleGetUid)
 
-	wc := writeconcern.Majority()
-	txOptions := options.Transaction().SetWriteConcern(wc)
-	session, err := mongoInst.Client.StartSession()
-	if err != nil {
-		fmt.Printf("Failed to start session \n")
-		return fmt.Errorf("Failed to start tx")
-	}
-	defer session.EndSession(ctx)
-	_, err = session.WithTransaction(
-		ctx,
-		func(ctx mongo.SessionContext) (interface{}, error) {
-			_, err := usersCollection.InsertOne(ctx, UserData{
-				Id:       uid,
-				Username: username,
-				Email:    email,
-			})
-			if err != nil {
-				return nil, err
-			}
-			_, err = usernamesCollection.InsertOne(ctx, UsernameData{
-				Id:     username,
-				UserID: uid,
-			})
-
-			return nil, err
-		},
-		txOptions,
-	)
-	if err != nil {
-
-		fmt.Printf("Tx failed with error: %s\n", err.Error())
-		return fmt.Errorf("Failed to create db records")
-	}
-
-	return nil
 }
 
 func CreateDBUserRecords(ctx *gin.Context, uid string, username string, email string) bool {
-	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
-	if err := createDBUserRecordsInternal(ctx, mongoInst, uid, username, email); err != nil {
+	if err := dbCreateUserRecordsInternal(ctx, mongoInst, uid, username, email); err != nil {
 		comm.AbortBadRequest(ctx, err.Error(), comm.CodeCantCreateAuthUser)
 		return false
 	}
 
 	return true
+}
+func handleGetUser(ctx *gin.Context) {
+	targetUserId := ctx.Param("uid")
+
+	userData := UserData{}
+	if !DBGetUserData(ctx, targetUserId, &userData) {
+		return
+	}
+
+	comm.GenericOKJSON(ctx, userData)
+}
+func handleGetUid(ctx *gin.Context) {
+	targetUsername := ctx.Param("username")
+
+	usernameData := UsernameData{}
+	if !DBGetUsernameData(ctx, targetUsername, &usernameData) {
+		return
+	}
+
+	comm.GenericOKJSON(ctx, usernameData)
 }
 
 // TODO: remove trailing spaces and check for correct username format
@@ -95,7 +74,7 @@ func handleRegister(ctx *gin.Context) {
 	}
 
 	//fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
-	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
 	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
 
@@ -107,7 +86,7 @@ func handleRegister(ctx *gin.Context) {
 	}
 
 	//fbAuth, _ := fbApp.Auth(ctx)
-	fbAuth, _ := ctx.MustGet(middleware.CtxVarFirebaseAuth).(auth.Auth)
+	fbAuth, _ := ctx.MustGet(auth.CtxVarFirebaseAuth).(auth.Auth)
 
 	userCreateParams := (&fbauth.UserToCreate{}).
 		Email(params.Email).
@@ -130,7 +109,7 @@ func handleRegister(ctx *gin.Context) {
 }
 
 type UpdateAvatarParams struct {
-	ImgUrl string `json:"img_url" binding:"gte=1,lte=1024,required"`
+	ImgUrl string `json:"img_url" binding:"gte=1,lte=1024,url,required"`
 }
 
 func handleUpdateAvatar(ctx *gin.Context) {
@@ -141,12 +120,13 @@ func handleUpdateAvatar(ctx *gin.Context) {
 		return
 	}
 
-	userId := ctx.MustGet(middleware.CtxVarUserId).(string)
+	userId := ctx.MustGet(auth.CtxVarUserId).(string)
+	//TODO: mb check user in database to ensure correct registration
 	if len(userId) == 0 {
 		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
 		return //not authenticated
 	}
-	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
 	filter := bson.D{{Key: "_id", Value: userId}}
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "img_url", Value: params.ImgUrl}}}}
@@ -170,13 +150,13 @@ func handleCompleteRegister(ctx *gin.Context) {
 		return
 	}
 
-	userId := ctx.MustGet(middleware.CtxVarUserId).(string)
+	userId := ctx.MustGet(auth.CtxVarUserId).(string)
 	if len(userId) == 0 {
 		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
 		return // not authenticated
 	}
 
-	authToken := ctx.MustGet(middleware.CtxVarAuthToken).(*fbauth.Token)
+	authToken := ctx.MustGet(auth.CtxVarAuthToken).(*fbauth.Token)
 	fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
 	auth, _ := fbApp.Auth(ctx)
 	userRecord, err := auth.GetUser(ctx, authToken.UID)
@@ -213,7 +193,7 @@ type RegisterTokenParams struct {
 }
 
 func handleRegisterToken(ctx *gin.Context) {
-	userId := ctx.MustGet(middleware.CtxVarUserId).(string)
+	userId := ctx.MustGet(auth.CtxVarUserId).(string)
 	if len(userId) == 0 {
 		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
 		return // not authenticated
@@ -227,7 +207,7 @@ func handleRegisterToken(ctx *gin.Context) {
 		return
 	}
 
-	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 	usersCollection := mongoInst.Collection(database.UsersCollection)
 
 	filter := bson.D{{Key: "_id", Value: userId}}

@@ -9,7 +9,6 @@ import (
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/messages"
 	"go-chat-app-api/internal/middleware"
-	"go-chat-app-api/internal/users"
 )
 
 func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) error {
@@ -17,14 +16,13 @@ func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) 
 
 	routers := gin.Default()
 
-	routers.Use(middleware.InjectParams(fbApp, fbAuth, mongoInst))
-	authRoutes := routers.Group("/", middleware.AuthMiddleware)
+	routers.Use(middleware.InjectFBApp(fbApp), auth.InjectAuth(fbAuth), database.InjectDB(mongoInst))
+	authRoutes := routers.Group("/", auth.AuthMiddleware)
 	publicRoutes := routers.Group("/")
 
 	RegisterHandlers(authRoutes, publicRoutes)
 
 	accounts.RegisterHandlers(authRoutes, publicRoutes)
-	users.RegisterHandlers(authRoutes, publicRoutes)
 	messages.RegisterHandlers(authRoutes, publicRoutes)
 
 	routers.Run(addr)

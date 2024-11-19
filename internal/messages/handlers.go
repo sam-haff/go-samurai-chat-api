@@ -13,10 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"go-chat-app-api/internal/accounts"
+	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/middleware"
-	"go-chat-app-api/internal/users"
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
@@ -111,7 +111,7 @@ func fcmSendNewMessage(ctx *gin.Context, tokens map[string]string, msg MessageDa
 	return true
 }
 func handleAddMessage(ctx *gin.Context) {
-	userId := ctx.MustGet(middleware.CtxVarUserId).(string)
+	userId := ctx.MustGet(auth.CtxVarUserId).(string)
 	if len(userId) == 0 {
 		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
 		return
@@ -122,14 +122,14 @@ func handleAddMessage(ctx *gin.Context) {
 		return
 	}
 
-	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
 	fromUserData := accounts.UserData{}
-	if !users.GetUserData(ctx, userId, &fromUserData) {
+	if !accounts.DBGetUserData(ctx, userId, &fromUserData) {
 		return
 	}
 	toUserData := accounts.UserData{}
-	if !users.GetUserData(ctx, params.ToId, &toUserData) {
+	if !accounts.DBGetUserData(ctx, params.ToId, &toUserData) {
 		return
 	}
 
@@ -179,7 +179,7 @@ type GetChatParams struct {
 }
 
 func handleGetChat(ctx *gin.Context) {
-	userId := ctx.MustGet(middleware.CtxVarUserId).(string)
+	userId := ctx.MustGet(auth.CtxVarUserId).(string)
 	if len(userId) == 0 {
 		return
 	}
@@ -193,7 +193,7 @@ func handleGetChat(ctx *gin.Context) {
 
 	fmt.Printf("Getting msgs before %d\n", params.BeforeTimeStamp)
 
-	mongoInst := ctx.MustGet(middleware.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 	messagesCollection := mongoInst.Collection(database.MessagesCollection)
 
 	// TODO dont allow high limit to mitigate possible attack
