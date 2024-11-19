@@ -12,11 +12,9 @@ import (
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) { //routers *gin.Engine) {
-	publicRoutes.GET("/hi", func(ctx *gin.Context) {
-		comm.GenericOK(ctx)
-	})
 }
 
+// only for testing purposes
 func handleCheck(ctx *gin.Context) {
 	fmt.Printf("Handle check... \n")
 
@@ -24,7 +22,7 @@ func handleCheck(ctx *gin.Context) {
 	authComps := strings.Split(authHeader, " ")
 	if len(authComps) != 2 && authComps[0] != "Bearer" {
 		fmt.Printf("Invalid header \n")
-		ctx.String(400, "Invalid header")
+		comm.AbortBadRequest(ctx, "Invalid header", comm.CodeInvalidArgs)
 		return
 	}
 
@@ -34,9 +32,9 @@ func handleCheck(ctx *gin.Context) {
 
 	if err != nil {
 		fmt.Printf("Unauthorized with %s \n", err.Error())
-		ctx.String(401, "Unauthorized")
+		comm.AbortUnauthorized(ctx, "Unauthorized", comm.CodeNotAuthenticated)
 		return
 	}
 
-	ctx.String(200, "Authorized")
+	comm.GenericOK(ctx)
 }
