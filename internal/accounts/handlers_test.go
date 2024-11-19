@@ -38,7 +38,7 @@ func Test_handeGetUid(t *testing.T) {
 	accs := getPckgTestingAccountsInfo()
 
 	mongoInst, _ := database.NewTestMongoDBInstance()
-	authMock := setupPckgAuthMock()
+	authMock := setupPckgAuthMock(true)
 	routes := getRoutes(authMock, mongoInst)
 
 	tests := []struct {
@@ -125,7 +125,7 @@ func Test_handleGetUser(t *testing.T) {
 	}
 
 	mongoInst, _ := database.NewTestMongoDBInstance()
-	authMock := setupPckgAuthMock()
+	authMock := setupPckgAuthMock(true)
 	routes := getRoutes(authMock, mongoInst)
 
 	for _, test := range tests {
@@ -181,7 +181,7 @@ func Test_handleGetUser(t *testing.T) {
 
 func Test_handleRegister(t *testing.T) {
 	mongoInst, _ := database.NewTestMongoDBInstance()
-	authMock := setupPckgAuthMock()
+	authMock := setupPckgAuthMock(true)
 	accs := getPckgTestingAccountsInfo()
 
 	routes := getRoutes(authMock, mongoInst)
@@ -281,7 +281,7 @@ func Test_handleRegister(t *testing.T) {
 
 func Test_handleUpdateAvatar(t *testing.T) {
 	mongoInst, _ := database.NewTestMongoDBInstance()
-	authMock := setupPckgAuthMock()
+	authMock := setupPckgAuthMock(true)
 	routes := getRoutes(authMock, mongoInst)
 
 	accs := getPckgTestingAccountsInfo()

@@ -11,6 +11,7 @@ import (
 type Auth interface {
 	VerifyToken(ctx context.Context, token string) (*fbauth.Token, error)
 	CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error)
+	GetUser(ctx context.Context, uid string) (*fbauth.UserRecord, error)
 }
 
 type FbAuth struct {
@@ -29,4 +30,8 @@ func (v FbAuth) VerifyToken(ctx context.Context, token string) (*fbauth.Token, e
 func (v FbAuth) CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error) {
 	rec, err := v.impl.CreateUser(ctx, user)
 	return rec, err
+}
+
+func (v FbAuth) GetUser(ctx context.Context, uid string) (*fbauth.UserRecord, error) {
+	return v.impl.GetUser(ctx, uid)
 }

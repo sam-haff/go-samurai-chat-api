@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strconv"
 
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/stretchr/testify/mock"
@@ -33,6 +34,12 @@ func (v *MockFbAuth) CreateUser(ctx context.Context, user *fbauth.UserToCreate) 
 	return arg0.(*fbauth.UserRecord), args.Error(1)
 }
 
+func (v *MockFbAuth) GetUser(ctx context.Context, uid string) (*fbauth.UserRecord, error) {
+	args := v.Called(ctx, uid)
+
+	return args.Get(0).(*fbauth.UserRecord), args.Error(1)
+}
+
 type TestingAccount struct {
 	Username string
 	Email    string
@@ -40,25 +47,51 @@ type TestingAccount struct {
 	Uid      string
 }
 
-func GetTestingAccountsInfo(pckgPrefix string) []TestingAccount {
-	return []TestingAccount{
-		{pckgPrefix + "testingacc1", pckgPrefix + "_testingacc1@t.com", pckgPrefix + "abcde", pckgPrefix + "-uid1"},
-		{pckgPrefix + "testingacc2", pckgPrefix + "_testingacc2@t.com", pckgPrefix + "ghjkl", pckgPrefix + "-uid2"},
+func GetTestingAccountInfo(pckgPrefix string, index int) TestingAccount {
+	indexStr := strconv.Itoa(index)
+	return TestingAccount{
+		Username: pckgPrefix + "testingacc" + indexStr,
+		Email:    pckgPrefix + "_testingacc" + indexStr + "@t.com",
+		Token:    pckgPrefix + "abcde" + indexStr,
+		Uid:      pckgPrefix + "-uid" + indexStr,
 	}
 }
+func GetTestingAccountsInfo(pckgPrefix string, startingIndex int, count int) []TestingAccount {
+	accs := make([]TestingAccount, count)
+	for i := 0; i < count; i++ {
+		accs[i] = GetTestingAccountInfo(pckgPrefix, i+startingIndex)
+	}
+	return accs
+}
 
-func SetupAuthMock(pckgPrefix string) *MockFbAuth {
-	accs := GetTestingAccountsInfo(pckgPrefix)
+const SetupAuthMockTestingAccsCount = 2
 
+func FinalizeSetupAuthMock(authMock *MockFbAuth) {
+	authMock.On("VerifyToken", mock.Anything, mock.Anything).Return(nil, errors.New("Error placeholder for invalid creds"))
+	authMock.On("GetUser", mock.Anything, mock.Anything).Return(nil, errors.New("Error placeholder for invalid creds"))
+
+}
+
+func SetupAuthMock(pckgPrefix string, accs []TestingAccount, finalizeSetup bool) *MockFbAuth {
 	mockAuth := MockFbAuth{}
 	for _, acc := range accs {
 		authToken := &fbauth.Token{}
 		authToken.UID = acc.Uid
 		authToken.Firebase.SignInProvider = "email"
+		userRecord := &fbauth.UserRecord{UserInfo: &fbauth.UserInfo{}}
+		userRecord.Email = acc.Email
+		userRecord.EmailVerified = false
+		userRecord.UID = acc.Uid
+		//userRecord.
+
 		mockAuth.On("VerifyToken", mock.Anything, acc.Token).Return(authToken, nil)
+		mockAuth.On("GetUser", mock.Anything, acc.Uid).Return(userRecord, nil)
 	}
 
-	mockAuth.On("VerifyToken", mock.Anything, mock.Anything).Return(nil, errors.New("Error placeholder for invalid creds"))
+	mockAuthPtr := &mockAuth
+	if finalizeSetup {
+		FinalizeSetupAuthMock(mockAuthPtr)
+	}
 
-	return &mockAuth
+	return mockAuthPtr
 }

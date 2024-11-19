@@ -15,16 +15,25 @@ func TestMain(m *testing.M) {
 
 const pckgPrefix = "accounts"
 
+const (
+	TestingAccountsInDBStartingIndex = 0
+	TestingAccountsInDBCount         = 2
+)
+
 func getPckgTestingAccountsInfo() []auth.TestingAccount {
-	return auth.GetTestingAccountsInfo(pckgPrefix)
+	return auth.GetTestingAccountsInfo(
+		pckgPrefix,
+		TestingAccountsInDBStartingIndex,
+		TestingAccountsInDBCount,
+	)
 }
 func setupPckgTestingAccounts() {
 	accs := getPckgTestingAccountsInfo()
 
 	SetupTestingAccounts(accs)
 }
-func setupPckgAuthMock() *auth.MockFbAuth {
-	authMock := auth.SetupAuthMock(pckgPrefix)
+func setupPckgAuthMock(finalizeSetup bool) *auth.MockFbAuth {
+	authMock := auth.SetupAuthMock(pckgPrefix, getPckgTestingAccountsInfo(), finalizeSetup)
 
 	return authMock
 }

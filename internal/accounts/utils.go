@@ -147,6 +147,6 @@ func DBUserRegisterCompletedUtil(ctx context.Context, mongoInst *database.MongoD
 	if status != UtilErrorOk {
 		return false
 	}
-	status = DBGetUsernameDataUtil(ctx, mongoInst, uid, usernameData)
+	status = DBGetUsernameDataUtil(ctx, mongoInst, userData.Username, usernameData)
 	return status == UtilErrorOk
 }
