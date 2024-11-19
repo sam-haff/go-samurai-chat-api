@@ -5,6 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	CtxVarFirebaseApp = "fb-app"
+)
+
 func InjectFBApp(fbApp *firebase.App) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Set(CtxVarFirebaseApp, fbApp)

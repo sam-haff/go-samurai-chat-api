@@ -30,7 +30,7 @@ func dbCreateUserRecordsInternal(ctx context.Context, mongoInst *database.MongoD
 	session, err := mongoInst.Client.StartSession()
 	if err != nil {
 		fmt.Printf("Failed to start session \n")
-		return fmt.Errorf("Failed to start tx")
+		return fmt.Errorf("Failed to start tx with %v", err)
 	}
 	defer session.EndSession(ctx)
 	_, err = session.WithTransaction(
@@ -56,7 +56,7 @@ func dbCreateUserRecordsInternal(ctx context.Context, mongoInst *database.MongoD
 	if err != nil {
 
 		fmt.Printf("Tx failed with error: %s\n", err.Error())
-		return fmt.Errorf("Failed to create db records")
+		return fmt.Errorf("Failed to create db records with: %v", err)
 	}
 
 	return nil
