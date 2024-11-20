@@ -281,3 +281,54 @@ func Test_handleUpdateAvatar(t *testing.T) {
 		assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm status")
 	}
 }
+
+func Test_handleCompleteRegister(t *testing.T) {
+	assert := assert.New(t)
+
+	authMock := setupPckgAuthMock(false)
+	accsNotInDB := auth.GetTestingAccountsInfo(pckgPrefix, TestingAccountsInDBCount+1, 2)
+	for _, acc := range accsNotInDB {
+		authMock.AddMockTestingAccount(acc)
+	}
+	auth.FinalizeSetupAuthMock(authMock)
+
+	mongoInst, _ := database.NewTestMongoDBInstance()
+	routes := getRoutes(authMock, mongoInst)
+	accs := getPckgTestingAccountsInfo()
+
+	tests := []struct {
+		name                   string
+		username               string
+		token                  string
+		expectedStatus         int
+		expectedCommStatusCode int
+	}{
+		{"Incomplete registered auth", accsNotInDB[0].Username, accsNotInDB[0].Token, http.StatusOK, comm.CodeSuccess},
+		{"Already registered auth", accs[0].Username, accs[0].Token, http.StatusBadRequest, comm.CodeCantCreateAuthUser},
+		{"Invalid username format 1", "abc", accsNotInDB[1].Token, http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Invalid username format 2", "abcd_d", accsNotInDB[1].Token, http.StatusBadRequest, comm.CodeInvalidArgs},
+	}
+
+	for _, test := range tests {
+		t.Log("=== RUN Test_handleCompleteRegister/" + test.name)
+
+		params := CompleteRegisterParams{Username: test.username}
+		paramsBytes, _ := json.Marshal(params)
+		req, _ := http.NewRequest("POST", "/completeregister", bytes.NewBuffer(paramsBytes))
+		//req.Header.Set("Authorization", "Bearer "+test.token)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", test.token))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		routes.ServeHTTP(rec, req)
+
+		resp := rec.Result()
+		assert.Equal(test.expectedStatus, resp.StatusCode, "wrong http status code")
+		respJson := comm.ApiResponsePlain{}
+		respJsonBytes, _ := io.ReadAll(resp.Body)
+		err := json.Unmarshal(respJsonBytes, &respJson)
+		assert.Nil(err, "invalid comm response format")
+		assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm status code")
+		t.Log(respJson.Result.Msg)
+	}
+}

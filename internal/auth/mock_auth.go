@@ -40,6 +40,28 @@ func (v *MockFbAuth) GetUser(ctx context.Context, uid string) (*fbauth.UserRecor
 	return args.Get(0).(*fbauth.UserRecord), args.Error(1)
 }
 
+func (v *MockFbAuth) AddMockUserRecord(uid string, email string, token string) {
+	authToken := &fbauth.Token{}
+	authToken.UID = uid
+	authToken.Firebase.SignInProvider = "EmailAuthProviderID"
+	userRecord := &fbauth.UserRecord{UserInfo: &fbauth.UserInfo{}}
+	userRecord.Email = email
+	userRecord.EmailVerified = false
+	userRecord.UID = uid
+	userRecord.ProviderID = authToken.Firebase.SignInProvider
+	userInfo := &fbauth.UserInfo{}
+	userInfo.Email = userRecord.Email
+	userInfo.UID = uid
+	userInfo.ProviderID = userRecord.ProviderID
+	userRecord.ProviderUserInfo = []*fbauth.UserInfo{userInfo}
+
+	v.On("VerifyToken", mock.Anything, token).Return(authToken, nil)
+	v.On("GetUser", mock.Anything, uid).Return(userRecord, nil)
+}
+func (v *MockFbAuth) AddMockTestingAccount(acc TestingAccount) {
+	v.AddMockUserRecord(acc.Uid, acc.Email, acc.Token)
+}
+
 type TestingAccount struct {
 	Username string
 	Email    string
@@ -75,17 +97,7 @@ func FinalizeSetupAuthMock(authMock *MockFbAuth) {
 func SetupAuthMock(pckgPrefix string, accs []TestingAccount, finalizeSetup bool) *MockFbAuth {
 	mockAuth := MockFbAuth{}
 	for _, acc := range accs {
-		authToken := &fbauth.Token{}
-		authToken.UID = acc.Uid
-		authToken.Firebase.SignInProvider = "email"
-		userRecord := &fbauth.UserRecord{UserInfo: &fbauth.UserInfo{}}
-		userRecord.Email = acc.Email
-		userRecord.EmailVerified = false
-		userRecord.UID = acc.Uid
-		//userRecord.
-
-		mockAuth.On("VerifyToken", mock.Anything, acc.Token).Return(authToken, nil)
-		mockAuth.On("GetUser", mock.Anything, acc.Uid).Return(userRecord, nil)
+		mockAuth.AddMockTestingAccount(acc)
 	}
 
 	mockAuthPtr := &mockAuth

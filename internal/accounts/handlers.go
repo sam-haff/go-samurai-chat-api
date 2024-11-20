@@ -3,7 +3,6 @@ package accounts
 import (
 	"fmt"
 
-	firebase "firebase.google.com/go/v4"
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,18 +10,17 @@ import (
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
-	"go-chat-app-api/internal/middleware"
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
 	publicRoutes.POST("/register", handleRegister)
 
 	authRoutes.POST("/completeregister", handleCompleteRegister)
-	authRoutes.POST("/registertoken", handleRegisterToken)
-	authRoutes.POST("/updateavatar", handleUpdateAvatar)
+	authRoutes.POST("/registertoken", CompleteRegisteredMiddleware, handleRegisterToken)
+	authRoutes.POST("/updateavatar", CompleteRegisteredMiddleware, handleUpdateAvatar)
 
-	authRoutes.GET("/users/id/:uid", handleGetUser)
-	authRoutes.GET("/uid/:username", handleGetUid)
+	authRoutes.GET("/users/id/:uid", CompleteRegisteredMiddleware, handleGetUser)
+	authRoutes.GET("/uid/:username", CompleteRegisteredMiddleware, handleGetUid)
 
 }
 
@@ -73,7 +71,6 @@ func handleRegister(ctx *gin.Context) {
 		return
 	}
 
-	//fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
 	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
@@ -85,7 +82,6 @@ func handleRegister(ctx *gin.Context) {
 		return
 	}
 
-	//fbAuth, _ := fbApp.Auth(ctx)
 	fbAuth, _ := ctx.MustGet(auth.CtxVarFirebaseAuth).(auth.Auth)
 
 	userCreateParams := (&fbauth.UserToCreate{}).
@@ -121,7 +117,6 @@ func handleUpdateAvatar(ctx *gin.Context) {
 	}
 
 	userId := ctx.MustGet(auth.CtxVarUserId).(string)
-	//TODO: mb check user in database to ensure correct registration
 	if len(userId) == 0 {
 		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
 		return //not authenticated
@@ -140,7 +135,7 @@ func handleUpdateAvatar(ctx *gin.Context) {
 }
 
 type CompleteRegisterParams struct {
-	Username string `json:"username" binding:"min=4,required"`
+	Username string `json:"username" binding:"min=4,alphanum,required"`
 }
 
 func handleCompleteRegister(ctx *gin.Context) {
@@ -157,8 +152,7 @@ func handleCompleteRegister(ctx *gin.Context) {
 	}
 
 	authToken := ctx.MustGet(auth.CtxVarAuthToken).(*fbauth.Token)
-	fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
-	auth, _ := fbApp.Auth(ctx)
+	auth := ctx.MustGet(auth.CtxVarFirebaseAuth).(auth.Auth)
 	userRecord, err := auth.GetUser(ctx, authToken.UID)
 	fmt.Printf(userRecord.ProviderID + "\n")
 	fmt.Printf(authToken.Firebase.SignInProvider + "\n")
