@@ -8,8 +8,43 @@ import (
 
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func Test_InjectAuth(t *testing.T) {
+	assert := assert.New(t)
+
+	testAuth := &FbAuth{}
+	tests := []struct {
+		val    Auth
+		exists bool
+	}{
+		{nil, false},
+		{testAuth, true},
+	}
+
+	for _, test := range tests {
+		routes := gin.Default()
+		if test.exists {
+			routes.Use(InjectAuth(test.val))
+		}
+		routes.GET("/test", func(ctx *gin.Context) {
+			v, exists := ctx.Get(CtxVarFirebaseAuth)
+
+			assert.Equal(test.exists, exists, "shouldnt or should exist")
+
+			if exists {
+				fbApp := v.(Auth)
+				assert.Equal(test.val, fbApp, "wrong value in the context")
+			}
+		})
+
+		req, _ := http.NewRequest("GET", "/test", nil)
+		rec := httptest.NewRecorder()
+		routes.ServeHTTP(rec, req)
+	}
+}
 
 func Test_AuthMiddleware(t *testing.T) {
 	tests := []struct {

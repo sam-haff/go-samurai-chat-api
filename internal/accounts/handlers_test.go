@@ -14,12 +14,12 @@ import (
 
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
-	"go-chat-app-api/internal/testutils"
 )
 
 func getRoutes(mockAuth *auth.MockFbAuth, mongoInst *database.MongoDBInstance) *gin.Engine {
@@ -35,6 +35,8 @@ func getRoutes(mockAuth *auth.MockFbAuth, mongoInst *database.MongoDBInstance) *
 	return routes
 }
 func Test_handeGetUid(t *testing.T) {
+	assert := assert.New(t)
+
 	accs := getPckgTestingAccountsInfo()
 
 	mongoInst, _ := database.NewTestMongoDBInstance()
@@ -64,10 +66,8 @@ func Test_handeGetUid(t *testing.T) {
 			routes.ServeHTTP(rec, req)
 
 			resp := rec.Result()
-			if resp.StatusCode != test.expectedStatus {
+			assert.Equal(test.expectedStatus, resp.StatusCode)
 
-				t.Errorf("Wrong status, expected %d, got %d", test.expectedStatus, resp.StatusCode)
-			}
 			success := resp.StatusCode == 200
 
 			respBody, _ := io.ReadAll(resp.Body)
@@ -76,38 +76,26 @@ func Test_handeGetUid(t *testing.T) {
 				respJson := comm.ApiResponseWith[UsernameData]{}
 
 				err := json.Unmarshal(respBody, &respJson)
-				if err != nil {
-					t.Error("Invalid response format")
-				}
-
-				if respJson.Result.Code != test.expectedCommStatusCode {
-					t.Errorf("Invalid response comm status code, expected %d, got %d", test.expectedCommStatusCode, respJson.Result.Code)
-				}
+				assert.Nil(err, "invalid response format")
+				assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "invalid response comm status code")
 
 				username := respJson.Result.Obj
-				if username.UserID != test.expectedUid {
-					t.Errorf("Got wrong uid, expected %s, got %s", test.expectedUid, username.UserID)
-				}
-				if username.Id != test.username {
-					t.Errorf("Got wrog username, expected %s, got %s", test.username, username.Id)
-				}
+				assert.Equal(test.expectedUid, username.UserID, "wrong uid")
+				assert.Equal(test.username, username.Id)
 			} else {
 				respJson := comm.ApiResponsePlain{}
 
 				err := json.Unmarshal(respBody, &respJson)
-				if err != nil {
-					t.Error("Invalid response format")
-				}
-
-				if respJson.Result.Code != test.expectedCommStatusCode {
-					t.Errorf("Invalid response comm status code, expected %d, got %d", test.expectedCommStatusCode, respJson.Result.Code)
-				}
+				assert.Nil(err, "invalid response format")
+				assert.Equal(test.expectedCommStatusCode, respJson.Result.Code)
 			}
 		})
 	}
 }
 
 func Test_handleGetUser(t *testing.T) {
+	assert := assert.New(t)
+
 	accs := getPckgTestingAccountsInfo()
 
 	//TODO: add test names
@@ -137,49 +125,33 @@ func Test_handleGetUser(t *testing.T) {
 		routes.ServeHTTP(rec, req)
 
 		resp := rec.Result()
-		if resp.StatusCode != test.expectedStatus {
-			t.Errorf("Wrong status, expected %d, got %d", test.expectedStatus, resp.StatusCode)
-		}
 		success := resp.StatusCode == 200
-
 		respBody, _ := io.ReadAll(resp.Body)
 
+		assert.Equal(test.expectedStatus, resp.StatusCode, "wrong status code")
 		if success {
 			respJson := comm.ApiResponseWith[UserData]{}
 			err := json.Unmarshal(respBody, &respJson)
-			if err != nil {
-				t.Error("Invalid response format")
-			}
-			if respJson.Result.Code != test.expectedCommStatusCode {
-				t.Error("Invalid response comm status code")
-			}
+			assert.Nil(err, "invalid response format")
+			assert.Equal(test.expectedCommStatusCode, respJson.Result.Code)
 
 			userdata := respJson.Result.Obj
-			if userdata.Id != test.uid {
-				t.Errorf("Got wrong uid, expected %s, got %s", test.uid, userdata.Id)
-			}
-			if userdata.Email != test.expectedEmail {
-				t.Errorf("Got wrong email, expected %s, got %s", test.expectedEmail, userdata.Email)
-			}
-			if userdata.Username != test.expectedUsername {
-				t.Errorf("Got wrong username, expected %s, got %s", test.expectedUsername, userdata.Email)
-			}
+			assert.Equal(test.uid, userdata.Id, "wrong uid")
+			assert.Equal(test.expectedEmail, userdata.Email, "wrong email")
+			assert.Equal(test.expectedUsername, userdata.Username, "wrong username")
 		} else {
 			respJson := comm.ApiResponsePlain{}
 
 			err := json.Unmarshal(respBody, &respJson)
-			if err != nil {
-				t.Error("Invalid response format")
-			}
-
-			if respJson.Result.Code != test.expectedCommStatusCode {
-				t.Errorf("Invalid response comm status code, expected %d, got %d", test.expectedCommStatusCode, respJson.Result.Code)
-			}
+			assert.Nil(err, "invalid response format")
+			assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong response comm status code")
 		}
 	}
 }
 
 func Test_handleRegister(t *testing.T) {
+	assert := assert.New(t)
+
 	mongoInst, _ := database.NewTestMongoDBInstance()
 	authMock := setupPckgAuthMock(true)
 	accs := getPckgTestingAccountsInfo()
@@ -246,40 +218,28 @@ func Test_handleRegister(t *testing.T) {
 		routes.ServeHTTP(rec, req)
 
 		resp := rec.Result()
-
-		if resp.StatusCode != test.status {
-			t.Errorf("Invalid http status, expected %d, got %d", test.status, resp.StatusCode)
-		}
+		assert.Equal(test.status, resp.StatusCode, "wrong http status")
 
 		respBody, _ := io.ReadAll(resp.Body)
-		t.Log(string(respBody))
 
 		respJSON := comm.ApiResponsePlain{}
 		err := json.Unmarshal(respBody, &respJSON)
-		if err != nil {
-			t.Error("Invalid response format")
-		}
-
-		if test.commStatusCode != respJSON.Result.Code {
-			t.Errorf("Invalid comm response code, expected %d, got %d", test.commStatusCode, respJSON.Result.Code)
-		}
+		assert.Nil(err, "invalid response format")
+		assert.Equal(test.commStatusCode, respJSON.Result.Code)
 
 		if respJSON.Result.Code == comm.CodeSuccess {
 			ctx := context.Background()
 			// see if database has correct records
 			// TODO: use DBUserRegisterCompleted ??
-			if DBGetUserDataUtil(ctx, mongoInst, test.mockUid, nil) != UtilErrorOk {
-				t.Error("Record in db is not present")
-			}
-			if DBGetUsernameDataUtil(ctx, mongoInst, test.username, nil) != UtilErrorOk {
-				t.Error("Record in db is not present")
-			}
-
+			assert.Equal(UtilErrorOk, DBGetUserDataUtil(ctx, mongoInst, test.mockUid, nil), "no db record")
+			assert.Equal(UtilErrorOk, DBGetUsernameDataUtil(ctx, mongoInst, test.username, nil), "no db record")
 		}
 	}
 }
 
 func Test_handleUpdateAvatar(t *testing.T) {
+	assert := assert.New(t)
+
 	mongoInst, _ := database.NewTestMongoDBInstance()
 	authMock := setupPckgAuthMock(true)
 	routes := getRoutes(authMock, mongoInst)
@@ -315,15 +275,9 @@ func Test_handleUpdateAvatar(t *testing.T) {
 		respBytes, _ := io.ReadAll(resp.Body)
 		respJson := comm.ApiResponsePlain{}
 		err := json.Unmarshal(respBytes, &respJson)
-		if err != nil {
-			t.Error(testutils.InvalidCommResponseFormatMessage)
-		}
-		if resp.StatusCode != test.expectedStatus {
-			t.Error(testutils.InvalidResponseHttpStatusCodeMessage(test.expectedCommStatusCode, resp.StatusCode)) //"Invalid resplonse status code")
-		}
-		if respJson.Result.Code != test.expectedCommStatusCode {
-			t.Error(testutils.InvalidResponseCommStatusCodeMessage(test.expectedCommStatusCode, respJson.Result.Code))
-		}
 
+		assert.Nil(err, "invalid response format")
+		assert.Equal(test.expectedStatus, resp.StatusCode, "wrong http status")
+		assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm status")
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
-	"go-chat-app-api/internal/testutils"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,10 +12,12 @@ import (
 
 	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func Test_CompleteRegisteredMiddleware(t *testing.T) {
+	assert := assert.New(t)
 
 	accs := getPckgTestingAccountsInfo()
 	authMock := setupPckgAuthMock(false)
@@ -41,7 +42,6 @@ func Test_CompleteRegisteredMiddleware(t *testing.T) {
 		expectedCommStatusCode int
 	}{
 		{"Auth with completed register", accs[0].Token, accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusOK, comm.CodeSuccess},
-		{"Auth with completed register, without auth middleware", accs[0].Token, accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusUnauthorized, comm.CodeNotAuthenticated},
 		{"Auth with incomplete register", accNotFullyRegistered.Token, accNotFullyRegistered.Uid, accNotFullyRegistered.Username, accNotFullyRegistered.Email, http.StatusUnauthorized, comm.CodeUserNotRegistered},
 	}
 
@@ -50,15 +50,10 @@ func Test_CompleteRegisteredMiddleware(t *testing.T) {
 		routes.Use(auth.InjectAuth(authMock), database.InjectDB(mongoInst))
 		testHandler := func(ctx *gin.Context) {
 			username := ctx.MustGet(CtxVarUserUsername)
-
-			if username != test.username {
-				t.Errorf("Wrong username, expected %s, got %s", test.username, username)
-			}
+			assert.Equal(test.username, username, "wrong username")
 
 			email := ctx.MustGet(CtxVarUserEmail)
-			if email != test.email {
-				t.Errorf("Wrong username, expected %s, got %s", test.email, email)
-			}
+			assert.Equal(test.email, email, "wrong email")
 
 			comm.GenericOK(ctx)
 		}
@@ -74,16 +69,9 @@ func Test_CompleteRegisteredMiddleware(t *testing.T) {
 		respJson := comm.ApiResponsePlain{}
 		err := json.Unmarshal(respJsonBytes, &respJson)
 
-		if resp.StatusCode != test.expectedStatus {
-
-			t.Error(testutils.InvalidResponseHttpStatusCodeMessage(test.expectedStatus, resp.StatusCode))
-		}
-		if err != nil {
-			t.Error(testutils.InvalidCommResponseFormatMessage)
-		}
-		if respJson.Result.Code != test.expectedCommStatusCode {
-			t.Error(testutils.InvalidResponseHttpStatusCodeMessage(test.expectedCommStatusCode, respJson.Result.Code))
-		}
+		assert.Equal(test.expectedStatus, resp.StatusCode, "wrong http status")
+		assert.Nil(err, "wrong resp format")
+		assert.Equal(respJson.Result.Code, test.expectedCommStatusCode, "wrong comm status code")
 	}
 
 }

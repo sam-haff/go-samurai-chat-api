@@ -13,13 +13,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-const (
-	UtilErrorOk          = 0
-	UtilErrorDoesntExist = 1
-	UtilErrorDecode      = 2
-)
-
 type UtilStatus int
+
+const (
+	UtilErrorOk          = UtilStatus(0)
+	UtilErrorDoesntExist = UtilStatus(1)
+	UtilErrorDecode      = UtilStatus(2)
+)
 
 func dbCreateUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, username string, email string) error {
 	usersCollection := mongoInst.Collection(database.UsersCollection)

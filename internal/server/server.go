@@ -25,7 +25,5 @@ func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) 
 	accounts.RegisterHandlers(authRoutes, publicRoutes)
 	messages.RegisterHandlers(authRoutes, publicRoutes)
 
-	routers.Run(addr)
-
-	return nil
+	return routers.Run(addr)
 }
