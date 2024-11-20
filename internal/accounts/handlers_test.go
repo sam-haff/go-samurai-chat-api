@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"unsafe"
 
@@ -20,6 +21,7 @@ import (
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
+	"go-chat-app-api/internal/testutils"
 )
 
 func getRoutes(mockAuth *auth.MockFbAuth, mongoInst *database.MongoDBInstance) *gin.Engine {
@@ -331,4 +333,71 @@ func Test_handleCompleteRegister(t *testing.T) {
 		assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm status code")
 		t.Log(respJson.Result.Msg)
 	}
+}
+
+func Test_handleRegisterToken(t *testing.T) {
+	assert := assert.New(t)
+
+	authMock := setupPckgAuthMock(false)
+	accsNotInDB := auth.GetTestingAccountsInfo(pckgPrefix, TestingAccountsInDBCount+10, 2)
+	for _, acc := range accsNotInDB {
+		authMock.AddMockTestingAccount(acc)
+	}
+	auth.FinalizeSetupAuthMock(authMock)
+
+	mongoInst, _ := database.NewTestMongoDBInstance()
+	accs := getPckgTestingAccountsInfo()
+	routes := getRoutes(authMock, mongoInst)
+
+	tooLongDeviceName := strings.Repeat("a", MaxFcmDeviceNameLength+1)
+	tooLongToken := strings.Repeat("b", MaxFcmTokenLength+1)
+
+	tests := []struct {
+		name                   string
+		token                  string
+		uid                    string
+		fcmToken               string
+		fcmDeviceName          string
+		expectedStatus         int
+		expectedCommStatusCode int
+	}{
+		{"Normal", accs[0].Token, accs[0].Uid, "ccc", "dddd", http.StatusOK, comm.CodeSuccess},
+		{"Too long token", accs[0].Token, accs[0].Uid, tooLongToken, "dddd", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Too long device name", accs[0].Token, accs[0].Uid, "eee", tooLongDeviceName, http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Empty token", accs[0].Token, accs[0].Uid, "", "dddd", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Empty device name", accs[0].Token, accs[0].Uid, "eee", "", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Not fully registered", accsNotInDB[0].Token, accs[0].Uid, "eee", "ddd", http.StatusUnauthorized, comm.CodeUserNotRegistered},
+	}
+
+	for _, test := range tests {
+		testutils.PrintTestName(t, test.name)
+
+		params := RegisterTokenParams{Token: test.fcmToken, DeviceName: test.fcmDeviceName}
+		paramsBytes, _ := json.Marshal(&params)
+		req, _ := http.NewRequest("POST", "/registertoken", bytes.NewBuffer(paramsBytes))
+		req.Header.Set("Authorization", "Bearer "+test.token)
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		routes.ServeHTTP(rec, req)
+
+		resp := rec.Result()
+		assert.Equal(test.expectedStatus, resp.StatusCode, "wrong http status code")
+		respJson := comm.ApiResponsePlain{}
+		respJsonBytes, _ := io.ReadAll(resp.Body)
+		err := json.Unmarshal(respJsonBytes, &respJson)
+		assert.Nil(err, "invalid response format")
+		assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm status code")
+
+		if resp.StatusCode == http.StatusOK {
+			// token is meant to be registered succesfully, need to check if it's actually true
+			userData := UserData{}
+			utilStatus := DBGetUserDataUtil(context.Background(), mongoInst, test.uid, &userData)
+			assert.Equal(UtilErrorOk, utilStatus, "failed to get user record")
+			dbFcmToken, ok := userData.Tokens[test.fcmDeviceName]
+			assert.True(ok, "registered token is not present")
+			assert.Equal(test.fcmToken, dbFcmToken, "wrong value of registered token")
+		}
+	}
+
 }

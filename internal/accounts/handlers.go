@@ -181,9 +181,14 @@ func handleCompleteRegister(ctx *gin.Context) {
 	comm.OK(ctx, "Completed registration", comm.CodeSuccess)
 }
 
+const (
+	MaxFcmTokenLength      = 2049
+	MaxFcmDeviceNameLength = 2049
+)
+
 type RegisterTokenParams struct {
-	Token      string `json:"token" binding:"gte=1,lte=2049,required"`
-	DeviceName string `json:"device_name" binding:"gte=1,lte=2049,required"`
+	Token      string `json:"token" binding:"min=1,max=2049,required"`
+	DeviceName string `json:"device_name" binding:"min=1,max=2049,required"`
 }
 
 func handleRegisterToken(ctx *gin.Context) {

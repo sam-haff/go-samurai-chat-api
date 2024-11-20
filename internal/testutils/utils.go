@@ -2,8 +2,22 @@ package testutils
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 )
+
+func getCallingFuncName() string {
+	pc, _, _, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	if ok && details != nil {
+		return details.Name()
+	}
+	return ""
+}
+
+func PrintTestName(t *testing.T, testName string) {
+	t.Log("=== RUN " + t.Name() + "/" + testName)
+}
 
 const InvalidCommResponseFormatMessage = "Invalid comm response format"
 
