@@ -96,18 +96,19 @@ func handleAddMessage(ctx *gin.Context) {
 			return
 		}
 	}
+	// TODO: mb return message id
 	comm.GenericOK(ctx)
 }
 
 type GetChatParams struct {
-	Limit           int    `json:"limit"`
+	Limit           int    `json:"limit" binding:"max=1024"`
 	BeforeTimeStamp int64  `json:"before_timestamp"`
-	With            string `json:"with" binding:"lte=1024,required"`
+	With            string `json:"with" binding:"max=1024,required"`
 	Inverse         bool   `json:"inverse"`
 }
 
 func handleGetChat(ctx *gin.Context) {
-	userId := ctx.MustGet(auth.CtxVarUserId).(string)
+	userId := ctx.MustGet(auth.CtxVarUserId).(string) // 500 if no auth middleware
 	if len(userId) == 0 {
 		return
 	}
@@ -124,7 +125,6 @@ func handleGetChat(ctx *gin.Context) {
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 	messagesCollection := mongoInst.Collection(database.MessagesCollection)
 
-	// TODO dont allow high limit to mitigate possible attack
 	opts := options.Find().SetLimit(int64(params.Limit)).SetSort(bson.D{{Key: "created_at", Value: -1}})
 
 	compKey := composeChatKey(userId, params.With)

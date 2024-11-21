@@ -40,7 +40,7 @@ func Test_handleAddMessage(t *testing.T) {
 	authMock := setupPckgAuthMock(false)
 	mongoInst, _ := database.NewTestMongoDBInstance()
 	fcmMock := &FcmClientMock{}
-	fcmMock.On("Send", mock.Anything, mock.Anything)
+	fcmMock.On("Send", mock.Anything, mock.Anything) // TODO make it more detailed to check correctness of the FCM message submit
 	routes := getRoutes(authMock, mongoInst, fcmMock)
 
 	accNotInDB := accounts.GetTestingAccountInfo(pckgPrefix, TestingAccountsInDBCount)

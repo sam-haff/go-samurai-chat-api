@@ -72,9 +72,7 @@ func newFcmMessage(token string, msg MessageData, needsNotification bool, needsM
 }
 
 func fcmSendNewMessage(ctx *gin.Context, tokens map[string]string, msg MessageData, needsNotification bool, needsMsg bool) bool {
-
-	//fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
-	fcmClient, _ := ctx.MustGet(CtxVarFcm).(FcmClient) //fbApp.Messaging(ctx)
+	fcmClient, _ := ctx.MustGet(CtxVarFcm).(FcmClient)
 
 	for _, token := range tokens {
 		fcmMsg := newFcmMessage(token, msg, needsNotification, needsMsg)
