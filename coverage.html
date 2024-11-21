@@ -1,0 +1,1532 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>cmd: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">go-chat-app-api/cmd/main.go (0.0%)</option>
+				
+				<option value="file1">go-chat-app-api/internal/accounts/handlers.go (81.5%)</option>
+				
+				<option value="file2">go-chat-app-api/internal/accounts/middleware.go (100.0%)</option>
+				
+				<option value="file3">go-chat-app-api/internal/accounts/testing.go (93.8%)</option>
+				
+				<option value="file4">go-chat-app-api/internal/accounts/utils.go (84.8%)</option>
+				
+				<option value="file5">go-chat-app-api/internal/auth/auth.go (0.0%)</option>
+				
+				<option value="file6">go-chat-app-api/internal/auth/middleware.go (100.0%)</option>
+				
+				<option value="file7">go-chat-app-api/internal/auth/mock_auth.go (8.9%)</option>
+				
+				<option value="file8">go-chat-app-api/internal/comm/resp.go (68.2%)</option>
+				
+				<option value="file9">go-chat-app-api/internal/database/middleware.go (100.0%)</option>
+				
+				<option value="file10">go-chat-app-api/internal/database/mongodb_instance.go (0.0%)</option>
+				
+				<option value="file11">go-chat-app-api/internal/database/mongodb_testing.go (0.0%)</option>
+				
+				<option value="file12">go-chat-app-api/internal/messages/fcm_client.go (0.0%)</option>
+				
+				<option value="file13">go-chat-app-api/internal/messages/fcm_client_mock.go (100.0%)</option>
+				
+				<option value="file14">go-chat-app-api/internal/messages/handlers.go (47.2%)</option>
+				
+				<option value="file15">go-chat-app-api/internal/messages/middleware.go (100.0%)</option>
+				
+				<option value="file16">go-chat-app-api/internal/messages/utils.go (94.0%)</option>
+				
+				<option value="file17">go-chat-app-api/internal/middleware/middleware.go (100.0%)</option>
+				
+				<option value="file18">go-chat-app-api/internal/server/handlers.go (0.0%)</option>
+				
+				<option value="file19">go-chat-app-api/internal/server/server.go (0.0%)</option>
+				
+				<option value="file20">go-chat-app-api/internal/testutils/utils.go (8.3%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "go-chat-app-api/internal/database"
+        "go-chat-app-api/internal/server"
+        "log"
+        "net/mail"
+        "os"
+
+        firebase "firebase.google.com/go/v4"
+        "github.com/joho/godotenv"
+        "google.golang.org/api/option"
+)
+
+func emailIsvalid(email string) bool <span class="cov0" title="0">{
+        _, err := mail.ParseAddress(email)
+        return err == nil
+}</span>
+
+func main() <span class="cov0" title="0">{
+        godotenv.Load()
+
+        credsFileName, ok := os.LookupEnv("FIREBASE_CREDS_FILE")
+        if !ok </span><span class="cov0" title="0">{
+                log.Fatal("Service account is required to be set through env var file path to creds file")
+        }</span>
+        <span class="cov0" title="0">mongodbConnectUrl, ok := os.LookupEnv("MONGODB_CONNECT_URL")
+        if !ok </span><span class="cov0" title="0">{
+                log.Fatal("Mongodb connection url with creds should be set thorugh env file")
+        }</span>
+
+        <span class="cov0" title="0">opt := option.WithCredentialsFile(credsFileName)
+        fbApp, err := firebase.NewApp(context.Background(), nil, opt)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Failed to create Firebase app: %s", err.Error())
+        }</span>
+
+        <span class="cov0" title="0">mongoInst, err := database.NewMongoDBInstance(mongodbConnectUrl)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Failed to connect to mongo db: %s", err.Error())
+        }</span>
+
+        <span class="cov0" title="0">if err := server.Run(":8080", fbApp, mongoInst); err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Failure at running a server: %s", err.Error())
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package accounts
+
+import (
+        "fmt"
+
+        fbauth "firebase.google.com/go/v4/auth"
+        "github.com/gin-gonic/gin"
+        "go.mongodb.org/mongo-driver/bson"
+
+        "go-chat-app-api/internal/auth"
+        "go-chat-app-api/internal/comm"
+        "go-chat-app-api/internal/database"
+)
+
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) <span class="cov8" title="1">{
+        publicRoutes.POST("/register", handleRegister)
+
+        authRoutes.POST("/completeregister", handleCompleteRegister)
+        authRoutes.POST("/registertoken", CompleteRegisteredMiddleware, handleRegisterToken)
+        authRoutes.POST("/updateavatar", CompleteRegisteredMiddleware, handleUpdateAvatar)
+
+        authRoutes.GET("/users/id/:uid", CompleteRegisteredMiddleware, handleGetUser)
+        authRoutes.GET("/uid/:username", CompleteRegisteredMiddleware, handleGetUid)
+
+}</span>
+
+func CreateDBUserRecords(ctx *gin.Context, userData UserData) bool <span class="cov8" title="1">{
+        mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+        if err := dbCreateUserRecordsInternal(ctx, mongoInst, userData); err != nil </span><span class="cov8" title="1">{
+                comm.AbortBadRequest(ctx, err.Error(), comm.CodeCantCreateAuthUser)
+                return false
+        }</span>
+
+        <span class="cov8" title="1">return true</span>
+}
+func handleGetUser(ctx *gin.Context) <span class="cov8" title="1">{
+        targetUserId := ctx.Param("uid")
+
+        userData := UserData{}
+        if !DBGetUserData(ctx, targetUserId, &amp;userData) </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">comm.GenericOKJSON(ctx, userData)</span>
+}
+func handleGetUid(ctx *gin.Context) <span class="cov8" title="1">{
+        targetUsername := ctx.Param("username")
+
+        usernameData := UsernameData{}
+        if !DBGetUsernameData(ctx, targetUsername, &amp;usernameData) </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">comm.GenericOKJSON(ctx, usernameData)</span>
+}
+
+// TODO: remove trailing spaces and check for correct username format
+type RegisterParams struct {
+        Username string `json:"username" binding:"min=4,alphanum,required"`
+        Email    string `json:"email" binding:"email,required"`
+        Pwd      string `json:"pwd" binding:"min=6,required"`
+}
+
+func handleRegister(ctx *gin.Context) <span class="cov8" title="1">{
+        params := RegisterParams{}
+
+        if err := ctx.ShouldBind(&amp;params); err != nil </span><span class="cov8" title="1">{
+                comm.AbortFailedBinding(ctx, err)
+
+                return
+        }</span>
+
+        <span class="cov8" title="1">mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+        usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
+
+        filter := bson.D{{Key: "_id", Value: params.Username}}
+        usernameRes := usernamesCollection.FindOne(ctx, filter)
+        if usernameRes.Err() == nil </span><span class="cov8" title="1">{
+                comm.AbortBadRequest(ctx, "User already exists", comm.CodeUsernameTaken)
+                return
+        }</span>
+
+        <span class="cov8" title="1">fbAuth, _ := ctx.MustGet(auth.CtxVarFirebaseAuth).(auth.Auth)
+
+        userCreateParams := (&amp;fbauth.UserToCreate{}).
+                Email(params.Email).
+                EmailVerified(false).
+                Password(params.Pwd).
+                Disabled(false)
+
+        userRecord, err := fbAuth.CreateUser(ctx, userCreateParams)
+        if err != nil </span><span class="cov8" title="1">{
+                respMsg := fmt.Sprintf("Backend failed to create new user with %s", err.Error())
+                comm.AbortBadRequest(ctx, respMsg, comm.CodeCantCreateAuthUser)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if !CreateDBUserRecords(ctx, UserData{Id: userRecord.UID, Username: params.Username, Email: params.Email}) </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">comm.OK(ctx, "Registered", comm.CodeSuccess)</span>
+}
+
+type UpdateAvatarParams struct {
+        ImgUrl string `json:"img_url" binding:"gte=1,lte=1024,url,required"`
+}
+
+func handleUpdateAvatar(ctx *gin.Context) <span class="cov8" title="1">{
+        params := UpdateAvatarParams{}
+        err := ctx.ShouldBind(&amp;params)
+        if err != nil </span><span class="cov8" title="1">{
+                comm.AbortFailedBinding(ctx, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userId := ctx.MustGet(auth.CtxVarUserId).(string)
+        if len(userId) == 0 </span><span class="cov0" title="0">{
+                comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
+                return //not authenticated
+        }</span>
+        <span class="cov8" title="1">mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+        filter := bson.D{{Key: "_id", Value: userId}}
+        update := bson.D{{Key: "$set", Value: bson.D{{Key: "img_url", Value: params.ImgUrl}}}}
+        _, err = mongoInst.Collection(database.UsersCollection).UpdateOne(ctx, filter, update)
+
+        if err != nil </span><span class="cov0" title="0">{
+                comm.AbortBadRequest(ctx, "Failed to update url", comm.CodeInvalidArgs)
+                return
+        }</span>
+        <span class="cov8" title="1">comm.GenericOK(ctx)</span>
+}
+
+type CompleteRegisterParams struct {
+        Username string `json:"username" binding:"min=4,alphanum,required"`
+}
+
+func handleCompleteRegister(ctx *gin.Context) <span class="cov8" title="1">{
+        params := CompleteRegisterParams{}
+        if err := ctx.ShouldBind(&amp;params); err != nil </span><span class="cov8" title="1">{
+                comm.AbortFailedBinding(ctx, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userId := ctx.MustGet(auth.CtxVarUserId).(string)
+        if len(userId) == 0 </span><span class="cov0" title="0">{
+                comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
+                return // not authenticated
+        }</span>
+
+        <span class="cov8" title="1">authToken := ctx.MustGet(auth.CtxVarAuthToken).(*fbauth.Token)
+        auth := ctx.MustGet(auth.CtxVarFirebaseAuth).(auth.Auth)
+        userRecord, err := auth.GetUser(ctx, authToken.UID)
+        fmt.Printf(userRecord.ProviderID + "\n")
+        fmt.Printf(authToken.Firebase.SignInProvider + "\n")
+        if err != nil </span><span class="cov0" title="0">{
+                comm.AbortUnauthorized(ctx, "Smth went wrong", comm.CodeNotAuthenticated)
+                return
+        }</span>
+        <span class="cov8" title="1">email := ""
+        for _, v := range userRecord.ProviderUserInfo </span><span class="cov8" title="1">{
+                if v.ProviderID == authToken.Firebase.SignInProvider </span><span class="cov8" title="1">{
+                        email = v.Email
+                        break</span>
+                }
+        }
+        <span class="cov8" title="1">if len(email) == 0 </span><span class="cov0" title="0">{
+                fmt.Printf("Invalid provider\n")
+                comm.AbortUnauthorized(ctx, "Invalid provider", comm.CodeNotAuthenticated)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if !CreateDBUserRecords(ctx, UserData{Id: authToken.UID, Username: params.Username, Email: email}) </span><span class="cov8" title="1">{
+                //all responces are handled inside func
+                return
+        }</span>
+
+        <span class="cov8" title="1">comm.OK(ctx, "Completed registration", comm.CodeSuccess)</span>
+}
+
+const (
+        MaxFcmTokenLength      = 2049
+        MaxFcmDeviceNameLength = 2049
+)
+
+type RegisterTokenParams struct {
+        Token      string `json:"token" binding:"min=1,max=2049,required"`
+        DeviceName string `json:"device_name" binding:"min=1,max=2049,required"`
+}
+
+func handleRegisterToken(ctx *gin.Context) <span class="cov8" title="1">{
+        userId := ctx.MustGet(auth.CtxVarUserId).(string)
+        if len(userId) == 0 </span><span class="cov0" title="0">{
+                comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
+                return // not authenticated
+        }</span>
+        <span class="cov8" title="1">params := RegisterTokenParams{}
+        err := ctx.ShouldBind(&amp;params)
+        if err != nil </span><span class="cov8" title="1">{
+                fmt.Printf("Couldnt bind register token params: %s\n", err.Error())
+
+                comm.AbortFailedBinding(ctx, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+        usersCollection := mongoInst.Collection(database.UsersCollection)
+
+        filter := bson.D{{Key: "_id", Value: userId}}
+        res := usersCollection.FindOne(ctx, filter)
+        if res.Err() != nil </span><span class="cov0" title="0">{
+                comm.AbortBadRequest(ctx, "Auth error", comm.CodeNotAuthenticated)
+                return
+        }</span>
+
+        <span class="cov8" title="1">userData := UserData{}
+        err = res.Decode(&amp;userData)
+        if err != nil </span><span class="cov0" title="0">{
+                comm.AbortBadRequest(ctx, "Failed to device data from db", comm.CodeInvalidArgs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if userData.Tokens == nil </span><span class="cov0" title="0">{
+                userData.Tokens = make(map[string]string)
+        }</span>
+        <span class="cov8" title="1">userData.Tokens[params.DeviceName] = params.Token
+
+        update := bson.D{{Key: "$set", Value: bson.D{{Key: "tokens", Value: userData.Tokens}}}} //bson.D{$set: {"tokens", userData.Tokens}}
+        _, err = usersCollection.UpdateOne(ctx, filter, update)
+        if err != nil </span><span class="cov0" title="0">{
+                respMsg := fmt.Sprintf("Failed to write tokens to db with: %s", err.Error())
+
+                comm.AbortBadRequest(ctx, respMsg, comm.CodeInvalidArgs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">comm.OK(ctx, "Token registered", comm.CodeSuccess)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package accounts
+
+import (
+        "go-chat-app-api/internal/auth"
+        "go-chat-app-api/internal/comm"
+        "go-chat-app-api/internal/database"
+
+        "github.com/gin-gonic/gin"
+)
+
+const (
+        CtxVarUserUsername = "user-username"
+        CtxVarUserEmail    = "user-email"
+)
+
+func CompleteRegisteredMiddleware(ctx *gin.Context) <span class="cov8" title="1">{
+        mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+        userId := ctx.MustGet(auth.CtxVarUserId).(string)
+
+        userData := UserData{}
+        usernameData := UsernameData{}
+
+        if !DBUserRegisterCompletedUtil(ctx, mongoInst, userId, &amp;userData, &amp;usernameData) </span><span class="cov8" title="1">{
+                comm.AbortUnauthorized(ctx, "User register is incomplete, action is not authorized", comm.CodeUserNotRegistered)
+                return
+        }</span>
+
+        <span class="cov8" title="1">ctx.Set(CtxVarUserUsername, userData.Username)
+        ctx.Set(CtxVarUserEmail, userData.Email)</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package accounts
+
+import (
+        "context"
+        "fmt"
+        "log"
+        "strconv"
+
+        "go-chat-app-api/internal/auth"
+        "go-chat-app-api/internal/database"
+)
+
+func SetupTestingAccounts(accs []TestingAccount) <span class="cov8" title="1">{
+        mongoInst, err := database.NewTestMongoDBInstance()
+
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Failed to connect to test database with %s", err.Error())
+        }</span>
+        <span class="cov8" title="1">fmt.Print("Connected to mongodb!")
+
+        ctx := context.Background()
+
+        for _, acc := range accs </span><span class="cov8" title="1">{
+                dbCreateUserRecordsInternal(ctx, mongoInst, acc.UserData)
+        }</span>
+}
+
+type TestingAccount struct {
+        UserData
+        Token string
+}
+
+func (acc TestingAccount) ToTestingAuthRecord() auth.TestingAuthRecord <span class="cov8" title="1">{
+        return auth.TestingAuthRecord{
+                Email: acc.UserData.Email,
+                Uid:   acc.UserData.Id,
+                Token: acc.Token,
+        }
+}</span>
+
+func NewTestingAccountFromAuthRecord(authRecord auth.TestingAuthRecord, username string, tokens map[string]string) TestingAccount <span class="cov8" title="1">{
+        return TestingAccount{
+                UserData: UserData{
+                        Username: username,
+                        Email:    authRecord.Email,
+                        Id:       authRecord.Uid,
+                        Tokens:   tokens,
+                },
+                Token: authRecord.Token,
+        }
+}</span>
+
+func GetTestingAccountInfo(pckgPrefix string, index int) TestingAccount <span class="cov8" title="1">{
+        indexStr := strconv.Itoa(index)
+        authRecord := auth.GetTestingAuthRecord(pckgPrefix, index)
+
+        return NewTestingAccountFromAuthRecord(authRecord, pckgPrefix+"testingacc"+indexStr, map[string]string{"device": pckgPrefix + "fcmtoken" + indexStr})
+}</span>
+func GetTestingAccountsInfo(pckgPrefix string, startingIndex int, count int) []TestingAccount <span class="cov8" title="1">{
+        accs := make([]TestingAccount, count)
+        for i := 0; i &lt; count; i++ </span><span class="cov8" title="1">{
+                accs[i] = GetTestingAccountInfo(pckgPrefix, i+startingIndex)
+        }</span>
+        <span class="cov8" title="1">return accs</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package accounts
+
+import (
+        "context"
+        "fmt"
+        "go-chat-app-api/internal/comm"
+        "go-chat-app-api/internal/database"
+
+        "github.com/gin-gonic/gin"
+        "go.mongodb.org/mongo-driver/bson"
+        "go.mongodb.org/mongo-driver/mongo"
+        "go.mongodb.org/mongo-driver/mongo/options"
+        "go.mongodb.org/mongo-driver/mongo/writeconcern"
+)
+
+type UtilStatus int
+
+const (
+        UtilErrorOk          = UtilStatus(0)
+        UtilErrorDoesntExist = UtilStatus(1)
+        UtilErrorDecode      = UtilStatus(2)
+)
+
+func dbCreateUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, userData UserData) error <span class="cov8" title="1">{
+        usersCollection := mongoInst.Collection(database.UsersCollection)
+        usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
+
+        wc := writeconcern.Majority()
+        txOptions := options.Transaction().SetWriteConcern(wc)
+        session, err := mongoInst.Client.StartSession()
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Printf("Failed to start session \n")
+                return fmt.Errorf("Failed to start tx with %v", err)
+        }</span>
+        <span class="cov8" title="1">defer session.EndSession(ctx)
+        _, err = session.WithTransaction(
+                ctx,
+                func(ctx mongo.SessionContext) (interface{}, error) </span><span class="cov8" title="1">{
+                        _, err := usersCollection.InsertOne(ctx, userData)
+                        if err != nil </span><span class="cov8" title="1">{
+                                return nil, err
+                        }</span>
+                        <span class="cov8" title="1">_, err = usernamesCollection.InsertOne(ctx, UsernameData{
+                                Id:     userData.Username,
+                                UserID: userData.Id,
+                        })
+
+                        return nil, err</span>
+                },
+                txOptions,
+        )
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+
+                fmt.Printf("Tx failed with error: %s\n", err.Error())
+                return fmt.Errorf("Failed to create db records with: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func DBGetUsernameDataUtil(ctx context.Context, mongoInst *database.MongoDBInstance, username string, data *UsernameData) UtilStatus <span class="cov8" title="1">{
+        usersCollection := mongoInst.Collection(database.UsernamesCollection)
+
+        filter := bson.D{{Key: "_id", Value: username}}
+
+        res := usersCollection.FindOne(ctx, filter)
+        if res.Err() != nil </span><span class="cov8" title="1">{
+                return UtilErrorDoesntExist
+        }</span>
+        <span class="cov8" title="1">if data != nil </span><span class="cov8" title="1">{
+                err := res.Decode(data)
+                if err != nil </span><span class="cov0" title="0">{
+                        return UtilErrorDecode
+                }</span>
+        }
+
+        <span class="cov8" title="1">return UtilErrorOk</span>
+}
+
+func DBGetUserDataUtil(ctx context.Context, mongoInst *database.MongoDBInstance, id string, data *UserData) UtilStatus <span class="cov8" title="1">{
+        usersCollection := mongoInst.Collection(database.UsersCollection)
+
+        filter := bson.D{{Key: "_id", Value: id}}
+
+        res := usersCollection.FindOne(ctx, filter)
+
+        if res.Err() != nil </span><span class="cov8" title="1">{
+                return UtilErrorDoesntExist
+        }</span>
+
+        <span class="cov8" title="1">if data != nil </span><span class="cov8" title="1">{
+                err := res.Decode(data)
+                if err != nil </span><span class="cov0" title="0">{
+                        return UtilErrorDecode
+                }</span>
+
+                <span class="cov8" title="1">return UtilErrorOk</span>
+        }
+
+        <span class="cov8" title="1">return UtilErrorOk</span>
+}
+
+func DBGetUsernameData(ctx *gin.Context, username string, data *UsernameData) bool <span class="cov8" title="1">{
+        mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+        status := DBGetUsernameDataUtil(ctx, mongoInst, username, data)
+
+        if status == UtilErrorDoesntExist </span><span class="cov8" title="1">{
+                comm.AbortBadRequest(ctx, "Invalid user or user is not correctly registered", comm.CodeUserNotRegistered)
+                return false
+        }</span>
+        <span class="cov8" title="1">if status == UtilErrorDecode </span><span class="cov0" title="0">{
+                comm.AbortBadRequest(ctx, "Cant decode data from db", comm.CodeInvalidArgs)
+                return false
+        }</span>
+
+        <span class="cov8" title="1">return true</span>
+}
+
+func DBGetUserData(ctx *gin.Context, id string, data *UserData) bool <span class="cov8" title="1">{
+
+        mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+        utilErr := DBGetUserDataUtil(ctx, mongoInst, id, data)
+
+        if utilErr == UtilErrorDoesntExist </span><span class="cov8" title="1">{
+                comm.AbortBadRequest(ctx, "Invalid user or user is not correctly registered", comm.CodeUserNotRegistered)
+                return false
+        }</span>
+        <span class="cov8" title="1">if utilErr == UtilErrorDecode </span><span class="cov0" title="0">{
+                comm.AbortBadRequest(ctx, "Cant decode data from db", comm.CodeInvalidArgs)
+                return false
+        }</span>
+
+        <span class="cov8" title="1">return true</span>
+}
+func DBUserRegisterCompletedUtil(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, userData *UserData, usernameData *UsernameData) bool <span class="cov8" title="1">{
+        if userData == nil || usernameData == nil </span><span class="cov0" title="0">{
+                panic("arguments should not be null")</span>
+                <span class="cov0" title="0">return false</span>
+        }
+        <span class="cov8" title="1">status := DBGetUserDataUtil(ctx, mongoInst, uid, userData)
+        if status != UtilErrorOk </span><span class="cov8" title="1">{
+                return false
+        }</span>
+        <span class="cov8" title="1">status = DBGetUsernameDataUtil(ctx, mongoInst, userData.Username, usernameData)
+        return status == UtilErrorOk</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package auth
+
+import (
+        "context"
+
+        firebase "firebase.google.com/go/v4"
+        fbauth "firebase.google.com/go/v4/auth"
+)
+
+// for now only fb auth
+type Auth interface {
+        VerifyToken(ctx context.Context, token string) (*fbauth.Token, error)
+        CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error)
+        GetUser(ctx context.Context, uid string) (*fbauth.UserRecord, error)
+}
+
+type FbAuth struct {
+        impl *fbauth.Client
+}
+
+func NewAuth(fbApp *firebase.App) Auth <span class="cov0" title="0">{
+        fbAuth, _ := fbApp.Auth(context.TODO())
+        return FbAuth{fbAuth}
+}</span>
+
+func (v FbAuth) VerifyToken(ctx context.Context, token string) (*fbauth.Token, error) <span class="cov0" title="0">{
+        fbToken, err := v.impl.VerifyIDToken(ctx, token)
+        return fbToken, err
+}</span>
+func (v FbAuth) CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error) <span class="cov0" title="0">{
+        rec, err := v.impl.CreateUser(ctx, user)
+        return rec, err
+}</span>
+
+func (v FbAuth) GetUser(ctx context.Context, uid string) (*fbauth.UserRecord, error) <span class="cov0" title="0">{
+        return v.impl.GetUser(ctx, uid)
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package auth
+
+import (
+        "fmt"
+        "go-chat-app-api/internal/comm"
+        "net/http"
+        "strings"
+
+        "github.com/gin-gonic/gin"
+)
+
+const (
+        CtxVarUserId       = "user-id"
+        CtxVarAuthToken    = "auth-token"
+        CtxVarFirebaseAuth = "fb-auth"
+)
+
+func InjectAuth(fbAuth Auth) gin.HandlerFunc <span class="cov8" title="1">{
+        return func(ctx *gin.Context) </span><span class="cov8" title="1">{
+                ctx.Set(CtxVarFirebaseAuth, fbAuth)
+        }</span>
+}
+
+func AuthMiddleware(ctx *gin.Context) <span class="cov8" title="1">{
+        authHeader := ctx.GetHeader("Authorization")
+        authComps := strings.Split(authHeader, " ")
+
+        if len(authComps) != 2 &amp;&amp; authComps[0] != "Bearer" </span><span class="cov8" title="1">{
+                fmt.Printf("Invalid header \n")
+
+                ctx.AbortWithStatusJSON(http.StatusBadRequest, comm.NewApiResponse("Invalid header", comm.CodeNotAuthenticated))
+                return
+        }</span>
+
+        <span class="cov8" title="1">fbAuth := ctx.MustGet(CtxVarFirebaseAuth).(Auth)
+        authToken, err := fbAuth.VerifyToken(ctx, authComps[1])
+
+        if err != nil </span><span class="cov8" title="1">{
+                fmt.Printf("Unauthorized with: %s \n", err.Error())
+                ctx.AbortWithStatusJSON(http.StatusUnauthorized, comm.NewApiResponse("Invalid creds", comm.CodeNotAuthenticated))
+
+                ctx.Set(CtxVarUserId, "")
+                return
+        }</span>
+
+        <span class="cov8" title="1">ctx.Set(CtxVarUserId, authToken.UID)
+        ctx.Set(CtxVarAuthToken, authToken)</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package auth
+
+import (
+        "context"
+        "errors"
+        "log"
+        "strconv"
+
+        fbauth "firebase.google.com/go/v4/auth"
+        "github.com/stretchr/testify/mock"
+)
+
+type MockFbAuth struct {
+        mock.Mock
+}
+
+func (v *MockFbAuth) VerifyToken(ctx context.Context, token string) (*fbauth.Token, error) <span class="cov8" title="1">{
+        args := v.Called(ctx, token)
+        t := args.Get(0)
+        if t == nil </span><span class="cov0" title="0">{
+                return nil, args.Error(1)
+        }</span>
+        <span class="cov8" title="1">return args.Get(0).(*fbauth.Token), args.Error(1)</span>
+}
+func (v *MockFbAuth) CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error) <span class="cov0" title="0">{
+        if user == nil </span><span class="cov0" title="0">{
+                log.Fatal("Cant be")
+        }</span>
+        <span class="cov0" title="0">args := v.Called(ctx, user)
+        arg0 := args.Get(0)
+        if arg0 == nil </span><span class="cov0" title="0">{
+                return nil, args.Error(1)
+        }</span>
+        <span class="cov0" title="0">return arg0.(*fbauth.UserRecord), args.Error(1)</span>
+}
+
+func (v *MockFbAuth) GetUser(ctx context.Context, uid string) (*fbauth.UserRecord, error) <span class="cov0" title="0">{
+        args := v.Called(ctx, uid)
+
+        return args.Get(0).(*fbauth.UserRecord), args.Error(1)
+}</span>
+
+func (v *MockFbAuth) AddMockUserRecord(uid string, email string, token string) <span class="cov0" title="0">{
+        authToken := &amp;fbauth.Token{}
+        authToken.UID = uid
+        authToken.Firebase.SignInProvider = "EmailAuthProviderID"
+        userRecord := &amp;fbauth.UserRecord{UserInfo: &amp;fbauth.UserInfo{}}
+        userRecord.Email = email
+        userRecord.EmailVerified = false
+        userRecord.UID = uid
+        userRecord.ProviderID = authToken.Firebase.SignInProvider
+        userInfo := &amp;fbauth.UserInfo{}
+        userInfo.Email = userRecord.Email
+        userInfo.UID = uid
+        userInfo.ProviderID = userRecord.ProviderID
+        userRecord.ProviderUserInfo = []*fbauth.UserInfo{userInfo}
+
+        v.On("VerifyToken", mock.Anything, token).Return(authToken, nil)
+        v.On("GetUser", mock.Anything, uid).Return(userRecord, nil)
+}</span>
+func (v *MockFbAuth) AddMockTestingAccount(acc TestingAuthRecord) <span class="cov0" title="0">{
+        v.AddMockUserRecord(acc.Uid, acc.Email, acc.Token)
+}</span>
+
+type TestingAuthRecord struct {
+        Email string
+        Token string
+        Uid   string
+}
+
+func GetTestingAuthRecord(pckgPrefix string, index int) TestingAuthRecord <span class="cov0" title="0">{
+        indexStr := strconv.Itoa(index)
+        return TestingAuthRecord{
+                Email: pckgPrefix + "_testingacc" + indexStr + "@t.com",
+                Token: pckgPrefix + "abcde" + indexStr,
+                Uid:   pckgPrefix + "-uid" + indexStr,
+        }
+}</span>
+func GetTestingAuthRecords(pckgPrefix string, startingIndex int, count int) []TestingAuthRecord <span class="cov0" title="0">{
+        accs := make([]TestingAuthRecord, count)
+        for i := 0; i &lt; count; i++ </span><span class="cov0" title="0">{
+                accs[i] = GetTestingAuthRecord(pckgPrefix, i+startingIndex)
+        }</span>
+        <span class="cov0" title="0">return accs</span>
+}
+
+const SetupAuthMockTestingAccsCount = 2
+
+func FinalizeSetupAuthMock(authMock *MockFbAuth) <span class="cov0" title="0">{
+        authMock.On("VerifyToken", mock.Anything, mock.Anything).Return(nil, errors.New("Error placeholder for invalid creds"))
+        authMock.On("GetUser", mock.Anything, mock.Anything).Return(nil, errors.New("Error placeholder for invalid creds"))
+
+}</span>
+
+func SetupAuthMock(pckgPrefix string, accs []TestingAuthRecord, finalizeSetup bool) *MockFbAuth <span class="cov0" title="0">{
+        mockAuth := MockFbAuth{}
+        for _, acc := range accs </span><span class="cov0" title="0">{
+                mockAuth.AddMockTestingAccount(acc)
+        }</span>
+
+        <span class="cov0" title="0">mockAuthPtr := &amp;mockAuth
+        if finalizeSetup </span><span class="cov0" title="0">{
+                FinalizeSetupAuthMock(mockAuthPtr)
+        }</span>
+
+        <span class="cov0" title="0">return mockAuthPtr</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package comm
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+
+        "github.com/gin-gonic/gin"
+        "github.com/go-playground/validator/v10"
+)
+
+const (
+        CodeSuccess                         = 0
+        CodeUserAlreadyRegistered           = 1
+        CodeUsernameTaken                   = 2
+        CodeUsernameFormatNotValid          = 3
+        CodeReceiverDoesNotExist            = 4
+        CodeEmailProfileAuthInvariantBroken = 5
+        CodeCantCreateAuthUser              = 6
+        CodeUserNotRegistered               = 7
+        CodeNotAuthenticated                = 8
+        CodeMaximumTokensNumberReached      = 9
+        CodeDeviceNameTooLong               = 10
+        CodeInvalidArgs                     = 11
+        Code                                = 12 //next code
+)
+
+type ApiResponse[T any] struct {
+        Result T `json:"result"`
+}
+type ApiResponseResult struct {
+        Msg  string `json:"msg"`
+        Code int    `json:"code"`
+}
+type ApiResponseResultWithUid struct {
+        Msg  string `json:"msg"`
+        Code int    `json:"code"`
+        Uid  string `json:"uid"`
+}
+type ApiResponseResultWithJson struct {
+        Msg  string      `json:"msg"`
+        Code int         `json:"code"`
+        Obj  interface{} `json:"obj"`
+}
+type ApiResponseResultWith[T any] struct {
+        Msg  string `json:"msg"`
+        Code int    `json:"code"`
+        Obj  T      `json:"obj"`
+}
+
+type ApiResponseWith[T any] ApiResponse[ApiResponseResultWith[T]]
+type ApiResponseWithJson ApiResponse[ApiResponseResultWithJson]
+type ApiResponsePlain ApiResponse[ApiResponseResult]
+
+func (resp *ApiResponse[T]) String() string <span class="cov0" title="0">{
+        b, err := json.Marshal(resp)
+        if err != nil </span><span class="cov0" title="0">{
+                return "{\"\"result:{}}" //shouldn't be happening
+        }</span>
+
+        <span class="cov0" title="0">return string(b)</span>
+}
+
+func NewApiResponse(msg string, code int) *ApiResponsePlain <span class="cov8" title="1">{
+        resp := ApiResponsePlain{
+                Result: ApiResponseResult{
+                        Msg:  msg,
+                        Code: code,
+                },
+        }
+
+        return &amp;resp
+}</span>
+func NewApiResponseWithJson(msg string, code int, obj interface{}) *ApiResponseWithJson <span class="cov8" title="1">{
+        resp := ApiResponseWithJson{
+                Result: ApiResponseResultWithJson{
+                        Msg:  msg,
+                        Code: code,
+                        Obj:  obj,
+                },
+        }
+
+        return &amp;resp
+}</span>
+
+func OK(ctx *gin.Context, msg string, code int) <span class="cov8" title="1">{
+        ctx.JSON(http.StatusOK, NewApiResponse(msg, code))
+}</span>
+func GenericOK(ctx *gin.Context) <span class="cov8" title="1">{
+        OK(ctx, "Success", CodeSuccess)
+}</span>
+func OKJSON(ctx *gin.Context, msg string, code int, obj any) <span class="cov8" title="1">{
+        ctx.JSON(http.StatusOK, NewApiResponseWithJson(msg, code, obj))
+}</span>
+func GenericOKJSON(ctx *gin.Context, obj any) <span class="cov8" title="1">{
+        OKJSON(ctx, "Success", CodeSuccess, obj)
+}</span>
+func AbortBadRequest(ctx *gin.Context, msg string, code int) <span class="cov8" title="1">{
+        ctx.AbortWithStatusJSON(http.StatusBadRequest, NewApiResponse(msg, code))
+}</span>
+func AbortBadRequestJSON(ctx *gin.Context, msg string, code int, obj any) <span class="cov0" title="0">{
+        ctx.AbortWithStatusJSON(http.StatusBadRequest, NewApiResponseWithJson(msg, code, obj))
+}</span>
+func AbortGenericInvalidArgs(ctx *gin.Context) <span class="cov0" title="0">{
+        ctx.AbortWithStatusJSON(http.StatusBadRequest, NewApiResponse("Invalid args", CodeInvalidArgs))
+}</span>
+func AbortUnauthorized(ctx *gin.Context, msg string, code int) <span class="cov8" title="1">{
+        ctx.AbortWithStatusJSON(http.StatusUnauthorized, NewApiResponse(msg, code))
+}</span>
+func AbortFailedBinding(ctx *gin.Context, err error) <span class="cov8" title="1">{
+        if err == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov8" title="1">respMsg := "Invalid args"
+        if errs, ok := err.(validator.ValidationErrors); ok </span><span class="cov8" title="1">{
+                respMsg = fmt.Sprintf("Failed validation: \n%s", errs.Error())
+        }</span>
+
+        <span class="cov8" title="1">AbortBadRequest(ctx, respMsg, CodeInvalidArgs)</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package database
+
+import "github.com/gin-gonic/gin"
+
+const CtxVarMongoDBInst = "mongo-db"
+
+func InjectDB(mongoInst *MongoDBInstance) gin.HandlerFunc <span class="cov8" title="1">{
+        return func(ctx *gin.Context) </span><span class="cov8" title="1">{
+                ctx.Set(CtxVarMongoDBInst, mongoInst)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package database
+
+import (
+        "context"
+        "time"
+
+        "go.mongodb.org/mongo-driver/mongo"
+        "go.mongodb.org/mongo-driver/mongo/options"
+)
+
+type MongoDBInstance struct {
+        Client *mongo.Client
+}
+
+func (db *MongoDBInstance) Database() *mongo.Database <span class="cov0" title="0">{
+        return db.Client.Database(DatabaseName)
+}</span>
+func (db *MongoDBInstance) Collection(name string) *mongo.Collection <span class="cov0" title="0">{
+        return db.Database().Collection(name)
+}</span>
+
+func NewMongoDBInstance(connectURI string) (*MongoDBInstance, error) <span class="cov0" title="0">{
+        mongoServerAPI := options.ServerAPI(options.ServerAPIVersion1)
+        opts := options.Client().ApplyURI(connectURI).SetServerAPIOptions(mongoServerAPI).SetConnectTimeout(3 * time.Second)
+
+        ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+        defer cancel()
+
+        mongoClient, err := mongo.Connect(ctx, opts)
+        inst := MongoDBInstance{Client: mongoClient}
+
+        return &amp;inst, err
+}</span>
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package database
+
+import "fmt"
+
+func NewTestMongoDBInstance() (*MongoDBInstance, error) <span class="cov0" title="0">{
+        connectURI := "mongodb://127.0.0.1:27017/db?replicaSet=rs0&amp;retryWrites=true&amp;w=majority"
+
+        fmt.Printf("Trying to connect to MongoDB with connection uri %s \n", connectURI)
+
+        return NewMongoDBInstance(connectURI)
+}</span>
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package messages
+
+import (
+        "context"
+
+        "firebase.google.com/go/v4/messaging"
+)
+
+type FcmClient interface {
+        Send(context.Context, *messaging.Message) (string, error)
+}
+
+type FcmClientInstance struct {
+        impl *messaging.Client
+}
+
+func (fcm *FcmClientInstance) Send(ctx context.Context, msg *messaging.Message) (string, error) <span class="cov0" title="0">{
+        return fcm.impl.Send(ctx, msg)
+}</span>
+
+//FcmClient
+//FcmClientMock
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">package messages
+
+import (
+        "context"
+
+        "firebase.google.com/go/v4/messaging"
+        "github.com/stretchr/testify/mock"
+)
+
+type FcmClientMock struct {
+        mock.Mock
+}
+
+func (fcm *FcmClientMock) Send(ctx context.Context, msg *messaging.Message) (string, error) <span class="cov8" title="1">{
+        args := fcm.Called(ctx, msg)
+
+        return args.String(0), args.Error(1)
+}</span>
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">package messages
+
+import (
+        "fmt"
+        "time"
+
+        "github.com/gin-gonic/gin"
+        "go.mongodb.org/mongo-driver/bson/primitive"
+
+        "go-chat-app-api/internal/accounts"
+        "go-chat-app-api/internal/auth"
+        "go-chat-app-api/internal/comm"
+        "go-chat-app-api/internal/database"
+)
+
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) <span class="cov8" title="1">{
+        authRoutes.POST("/addmessage", handleAddMessage)
+        authRoutes.POST("/chat", handleGetChat)
+}</span>
+
+const (
+        MaxMessageLength = 4096
+        MaxIdLength      = 1024
+)
+
+type AddMessageParams struct {
+        Msg  string `json:"text" binding:"min=1,max=4096,required"`
+        ToId string `json:"to" binding:"min=1,max=1024,required"`
+}
+
+type Ids []string
+
+type MessageDataWithId struct {
+        Id  string      `bson:"msg_id" json:"msg_id"`
+        Msg MessageData `bson:"msg" json:"msg"`
+}
+
+func handleAddMessage(ctx *gin.Context) <span class="cov8" title="1">{
+        userId := ctx.MustGet(auth.CtxVarUserId).(string)
+        if len(userId) == 0 </span><span class="cov0" title="0">{
+                comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
+                return
+        }</span>
+        <span class="cov8" title="1">params := AddMessageParams{}
+        if err := ctx.ShouldBind(&amp;params); err != nil </span><span class="cov8" title="1">{
+                comm.AbortFailedBinding(ctx, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+        // TODO: set userdata in CompleteRegisteredMiddleware to avoid duplicate requests
+        fromUserData := accounts.UserData{}
+        if !accounts.DBGetUserData(ctx, userId, &amp;fromUserData) </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov8" title="1">toUserData := accounts.UserData{}
+        if !accounts.DBGetUserData(ctx, params.ToId, &amp;toUserData) </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">compIndex := composeChatKey(userId, params.ToId)
+
+        msg := MessageData{
+                MsgId:          primitive.NewObjectID(),
+                ConversationID: compIndex,
+                Text:           params.Msg,
+                FromId:         userId,
+                ToId:           params.ToId,
+                FromUsername:   fromUserData.Username,
+                ImgUrl:         fromUserData.Img_url,
+                CreatedAt:      time.Now().UnixMilli(),
+        }
+
+        messagesCollection := mongoInst.Collection(database.MessagesCollection)
+
+        _, err := messagesCollection.InsertOne(ctx, msg)
+
+        if err != nil </span><span class="cov0" title="0">{
+                respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
+                comm.AbortBadRequest(ctx, respMsg, comm.CodeInvalidArgs)
+                return
+        }</span>
+
+        //TODO: rework logic after WebSocket introduction
+        <span class="cov8" title="1">if toUserData.Tokens != nil </span><span class="cov8" title="1">{
+                if !fcmSendNewMessage(ctx, toUserData.Tokens, msg, true, false) </span><span class="cov0" title="0">{
+                        return
+                }</span>
+                <span class="cov8" title="1">if !fcmSendNewMessage(ctx, toUserData.Tokens, msg, false, true) </span><span class="cov0" title="0">{
+                        return
+                }</span>
+        }
+        <span class="cov8" title="1">if fromUserData.Tokens != nil </span><span class="cov8" title="1">{
+                if !fcmSendNewMessage(ctx, fromUserData.Tokens, msg, false, true) </span><span class="cov0" title="0">{
+                        return
+                }</span>
+        }
+        // TODO: mb return message id
+        <span class="cov8" title="1">comm.GenericOK(ctx)</span>
+}
+
+type GetChatParams struct {
+        Limit           int    `json:"limit" binding:"max=1024"`
+        BeforeTimeStamp int64  `json:"before_timestamp"`
+        With            string `json:"with" binding:"max=1024,required"`
+        Inverse         bool   `json:"inverse"`
+}
+
+func handleGetChat(ctx *gin.Context) <span class="cov0" title="0">{
+        userId := ctx.MustGet(auth.CtxVarUserId).(string) // 500 if no auth middleware
+        if len(userId) == 0 </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">params := GetChatParams{}
+        if err := ctx.ShouldBind(&amp;params); err != nil </span><span class="cov0" title="0">{
+                fmt.Printf("Invalid params\n")
+                comm.AbortFailedBinding(ctx, err)
+                return
+        }</span>
+
+        <span class="cov0" title="0">fmt.Printf("Getting msgs before %d\n", params.BeforeTimeStamp)
+
+        mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+        var messages []MessageData
+        res := DBGetMessagesUtil(ctx, mongoInst, userId, params.With, params.Limit, false, params.BeforeTimeStamp, &amp;messages)
+        if res == UtilStatusNotFound </span><span class="cov0" title="0">{
+                comm.AbortBadRequest(ctx, "Failed to fetch messages", comm.CodeInvalidArgs)
+                return
+        }</span>
+        <span class="cov0" title="0">if res == UtilStatusCantParse </span><span class="cov0" title="0">{
+                comm.AbortBadRequest(ctx, "Couldnt parse data from db", comm.CodeInvalidArgs)
+                return
+        }</span>
+
+        <span class="cov0" title="0">comm.GenericOKJSON(ctx, messages)</span>
+}
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package messages
+
+import "github.com/gin-gonic/gin"
+
+const CtxVarFcm = "fcm"
+
+func InjectFcm(fcm FcmClient) gin.HandlerFunc <span class="cov8" title="1">{
+        return func(ctx *gin.Context) </span><span class="cov8" title="1">{
+                ctx.Set(CtxVarFcm, fcm)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package messages
+
+import (
+        "context"
+        "fmt"
+        "go-chat-app-api/internal/database"
+        "sort"
+        "strconv"
+
+        "firebase.google.com/go/v4/messaging"
+        "github.com/gin-gonic/gin"
+        "go.mongodb.org/mongo-driver/bson"
+        "go.mongodb.org/mongo-driver/mongo/options"
+)
+
+type UtilStatus int
+
+const (
+        UtilStatusOk        = UtilStatus(0)
+        UtilStatusNotFound  = UtilStatus(1)
+        UtilStatusCantParse = UtilStatus(2)
+)
+
+func DBGetMessagesUtil(ctx context.Context, mongoInst *database.MongoDBInstance, uid1 string, uid2 string, limit int, asc bool, beforeTimeStamp int64, msgs *[]MessageData) UtilStatus <span class="cov8" title="1">{
+        messagesCollection := mongoInst.Collection(database.MessagesCollection)
+
+        sortVal := 1
+        if !asc </span><span class="cov8" title="1">{
+                sortVal = -1
+        }</span>
+        <span class="cov8" title="1">opts := options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "created_at", Value: sortVal}})
+
+        compKey := composeChatKey(uid1, uid2)
+
+        fmt.Printf("Gettting chat with comp key %s\n", compKey)
+
+        filter := bson.D{
+                {
+                        Key: "$and", Value: bson.A{
+                                bson.D{{Key: "conv_id", Value: compKey}},
+                                bson.D{{Key: "created_at", Value: bson.D{{Key: "$lt", Value: beforeTimeStamp}}}},
+                        },
+                }}
+        cursor, err := messagesCollection.Find(ctx, filter, opts)
+        if err != nil </span><span class="cov0" title="0">{
+                return UtilStatusNotFound
+        }</span>
+
+        <span class="cov8" title="1">err = cursor.All(ctx, msgs)
+        if err != nil </span><span class="cov0" title="0">{
+                return UtilStatusCantParse
+        }</span>
+
+        <span class="cov8" title="1">return UtilStatusOk</span>
+}
+
+func composeChatKey(uid1 string, uid2 string) string <span class="cov8" title="1">{
+        ids := []string{uid1, uid2}
+        sort.Strings(ids)
+
+        compIndex := ids[0] + ids[1]
+        return compIndex
+}</span>
+
+func newFcmMessage(token string, msg MessageData, needsNotification bool, needsMsg bool) *messaging.Message <span class="cov8" title="1">{
+        fcmMsg := &amp;messaging.Message{}
+
+        isNotification := 0
+        if needsNotification </span><span class="cov8" title="1">{
+                isNotification = 1
+        }</span>
+        <span class="cov8" title="1">isMsg := 0
+        if needsMsg </span><span class="cov8" title="1">{
+                isMsg = 1
+        }</span>
+
+        <span class="cov8" title="1">fcmMsgData := map[string]string{
+                "is_notification": strconv.FormatInt(int64(isNotification), 10),
+                "is_msg":          strconv.FormatInt(int64(isMsg), 10),
+        }
+
+        if needsNotification </span><span class="cov8" title="1">{
+                fcmMsgData["click_action"] = "FLUTTER_NOTIFICATION_CLICK"
+        }</span>
+        <span class="cov8" title="1">if needsMsg </span><span class="cov8" title="1">{
+                fcmMsgData["_from"] = msg.FromId
+                fcmMsgData["to"] = msg.ToId
+                fcmMsgData["username"] = msg.FromUsername
+                fcmMsgData["msg"] = msg.Text
+                fcmMsgData["img_url"] = msg.ImgUrl
+                fcmMsgData["created_at"] = strconv.FormatInt(msg.CreatedAt, 10)
+        }</span>
+
+        <span class="cov8" title="1">fcmMsg.Token = token
+        fcmMsg.Data = fcmMsgData
+        if needsNotification </span><span class="cov8" title="1">{
+                fcmMsg.Notification = &amp;messaging.Notification{
+                        Title: msg.FromUsername,
+                        Body:  msg.Text,
+                }
+                fcmMsg.Android = &amp;messaging.AndroidConfig{
+                        Priority: "high",
+                        Notification: &amp;messaging.AndroidNotification{
+                                Sound: "default",
+                        },
+                }
+                fcmMsg.APNS = &amp;messaging.APNSConfig{
+                        Payload: &amp;messaging.APNSPayload{
+                                Aps: &amp;messaging.Aps{
+                                        ContentAvailable: true,
+                                },
+                        },
+                }
+        }</span>
+
+        <span class="cov8" title="1">return fcmMsg</span>
+}
+
+func fcmSendNewMessage(ctx *gin.Context, tokens map[string]string, msg MessageData, needsNotification bool, needsMsg bool) bool <span class="cov8" title="1">{
+        fcmClient, _ := ctx.MustGet(CtxVarFcm).(FcmClient)
+
+        for _, token := range tokens </span><span class="cov8" title="1">{
+                fcmMsg := newFcmMessage(token, msg, needsNotification, needsMsg)
+
+                _, err := fcmClient.Send(ctx, fcmMsg)
+
+                if err != nil </span><span class="cov0" title="0">{
+                        fmt.Printf("Failed to send FCM message %s \n", err.Error())
+                        // some of tokens can be invalid
+                        // mb submit them for cleaning???
+
+                        //ctx.String(400, apiResponse("Failed to send FCM messages", CodeInvalidArgs))
+                        //return false
+                }</span>
+
+        }
+        <span class="cov8" title="1">return true</span>
+}
+</pre>
+		
+		<pre class="file" id="file17" style="display: none">package middleware
+
+import (
+        firebase "firebase.google.com/go/v4"
+        "github.com/gin-gonic/gin"
+)
+
+const (
+        CtxVarFirebaseApp = "fb-app"
+)
+
+func InjectFBApp(fbApp *firebase.App) gin.HandlerFunc <span class="cov8" title="1">{
+        return func(ctx *gin.Context) </span><span class="cov8" title="1">{
+                ctx.Set(CtxVarFirebaseApp, fbApp)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file18" style="display: none">package server
+
+import (
+        "fmt"
+        "strings"
+
+        firebase "firebase.google.com/go/v4"
+        "github.com/gin-gonic/gin"
+
+        "go-chat-app-api/internal/comm"
+        "go-chat-app-api/internal/middleware"
+)
+
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {<span class="cov0" title="0"> //routers *gin.Engine) {
+}</span>
+
+// only for testing purposes
+func handleCheck(ctx *gin.Context) <span class="cov0" title="0">{
+        fmt.Printf("Handle check... \n")
+
+        authHeader := ctx.GetHeader("Authorization")
+        authComps := strings.Split(authHeader, " ")
+        if len(authComps) != 2 &amp;&amp; authComps[0] != "Bearer" </span><span class="cov0" title="0">{
+                fmt.Printf("Invalid header \n")
+                comm.AbortBadRequest(ctx, "Invalid header", comm.CodeInvalidArgs)
+                return
+        }</span>
+
+        <span class="cov0" title="0">fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
+        fbAuth, _ := fbApp.Auth(ctx)
+        _, err := fbAuth.VerifyIDToken(ctx, authComps[1])
+
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Printf("Unauthorized with %s \n", err.Error())
+                comm.AbortUnauthorized(ctx, "Unauthorized", comm.CodeNotAuthenticated)
+                return
+        }</span>
+
+        <span class="cov0" title="0">comm.GenericOK(ctx)</span>
+}
+</pre>
+		
+		<pre class="file" id="file19" style="display: none">package server
+
+import (
+        firebase "firebase.google.com/go/v4"
+        "github.com/gin-gonic/gin"
+
+        "go-chat-app-api/internal/accounts"
+        "go-chat-app-api/internal/auth"
+        "go-chat-app-api/internal/database"
+        "go-chat-app-api/internal/messages"
+        "go-chat-app-api/internal/middleware"
+)
+
+func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) error <span class="cov0" title="0">{
+        fbAuth := auth.NewAuth(fbApp)
+
+        routers := gin.Default()
+
+        routers.Use(middleware.InjectFBApp(fbApp), auth.InjectAuth(fbAuth), database.InjectDB(mongoInst))
+        authRoutes := routers.Group("/", auth.AuthMiddleware)
+        publicRoutes := routers.Group("/")
+
+        RegisterHandlers(authRoutes, publicRoutes)
+
+        accounts.RegisterHandlers(authRoutes, publicRoutes)
+        messages.RegisterHandlers(authRoutes, publicRoutes)
+
+        return routers.Run(addr)
+}</span>
+</pre>
+		
+		<pre class="file" id="file20" style="display: none">package testutils
+
+import (
+        "fmt"
+        "runtime"
+        "testing"
+)
+
+func getCallingFuncName() string <span class="cov0" title="0">{
+        pc, _, _, ok := runtime.Caller(1)
+        details := runtime.FuncForPC(pc)
+        if ok &amp;&amp; details != nil </span><span class="cov0" title="0">{
+                return details.Name()
+        }</span>
+        <span class="cov0" title="0">return ""</span>
+}
+
+func PrintTestName(t *testing.T, testName string) <span class="cov8" title="1">{
+        t.Log("=== RUN " + t.Name() + "/" + testName)
+}</span>
+
+const InvalidCommResponseFormatMessage = "Invalid comm response format"
+
+func InvalidResponseHttpStatusCodeMessage(expected int, actual int) string <span class="cov0" title="0">{
+        return fmt.Sprintf("Invalid http response status code, expected %d, got %d", expected, actual)
+}</span>
+func InvalidResponseCommStatusCodeMessage(expected int, actual int) string <span class="cov0" title="0">{
+        return fmt.Sprintf("Invalid response comm status code, expected %d, got %d", expected, actual)
+}</span>
+func ValidateResponseHttpStatusCode(t *testing.T, expected int, actual int) <span class="cov0" title="0">{
+        if expected != actual </span><span class="cov0" title="0">{
+                t.Errorf("Invalid http response status code, expected %d, got %d", expected, actual)
+        }</span>
+}
+func ValidateResponseCommStatusCode(t *testing.T, expected int, actual int) <span class="cov0" title="0">{
+        if expected != actual </span><span class="cov0" title="0">{
+                t.Errorf("Invalid response comm status code, expected %d, got %d", expected, actual)
+        }</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
