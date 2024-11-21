@@ -21,7 +21,7 @@ const (
 	UtilErrorDecode      = UtilStatus(2)
 )
 
-func dbCreateUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, username string, email string) error {
+func dbCreateUserRecordsInternal(ctx context.Context, mongoInst *database.MongoDBInstance, userData UserData) error {
 	usersCollection := mongoInst.Collection(database.UsersCollection)
 	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
 
@@ -36,17 +36,13 @@ func dbCreateUserRecordsInternal(ctx context.Context, mongoInst *database.MongoD
 	_, err = session.WithTransaction(
 		ctx,
 		func(ctx mongo.SessionContext) (interface{}, error) {
-			_, err := usersCollection.InsertOne(ctx, UserData{
-				Id:       uid,
-				Username: username,
-				Email:    email,
-			})
+			_, err := usersCollection.InsertOne(ctx, userData)
 			if err != nil {
 				return nil, err
 			}
 			_, err = usernamesCollection.InsertOne(ctx, UsernameData{
-				Id:     username,
-				UserID: uid,
+				Id:     userData.Username,
+				UserID: userData.Id,
 			})
 
 			return nil, err

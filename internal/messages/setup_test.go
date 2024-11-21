@@ -1,10 +1,10 @@
-package accounts
+package messages
 
 import (
+	"go-chat-app-api/internal/accounts"
+	"go-chat-app-api/internal/auth"
 	"os"
 	"testing"
-
-	"go-chat-app-api/internal/auth"
 )
 
 func TestMain(m *testing.M) {
@@ -13,7 +13,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-const pckgPrefix = "accounts"
+const pckgPrefix = "messages"
 
 const (
 	TestingAccountsInDBStartingIndex = 0
@@ -23,8 +23,8 @@ const (
 func getPckgTestingAuthRecords() []auth.TestingAuthRecord {
 	return auth.GetTestingAuthRecords(pckgPrefix, TestingAccountsInDBStartingIndex, TestingAccountsInDBCount)
 }
-func getPckgTestingAccountsInfo() []TestingAccount {
-	return GetTestingAccountsInfo(
+func getPckgTestingAccountsInfo() []accounts.TestingAccount {
+	return accounts.GetTestingAccountsInfo(
 		pckgPrefix,
 		TestingAccountsInDBStartingIndex,
 		TestingAccountsInDBCount,
@@ -33,7 +33,7 @@ func getPckgTestingAccountsInfo() []TestingAccount {
 func setupPckgTestingAccounts() {
 	accs := getPckgTestingAccountsInfo()
 
-	SetupTestingAccounts(accs)
+	accounts.SetupTestingAccounts(accs)
 }
 func setupPckgAuthMock(finalizeSetup bool) *auth.MockFbAuth {
 	authMock := auth.SetupAuthMock(pckgPrefix, getPckgTestingAuthRecords(), finalizeSetup)

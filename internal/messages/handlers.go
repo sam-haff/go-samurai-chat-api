@@ -2,12 +2,8 @@ package messages
 
 import (
 	"fmt"
-	"sort"
-	"strconv"
 	"time"
 
-	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/messaging"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,7 +12,6 @@ import (
 	"go-chat-app-api/internal/auth"
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
-	"go-chat-app-api/internal/middleware"
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
@@ -24,9 +19,14 @@ func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup
 	authRoutes.POST("/chat", handleGetChat)
 }
 
+const (
+	MaxMessageLength = 4096
+	MaxIdLength      = 1024
+)
+
 type AddMessageParams struct {
-	Msg  string `json:"text" binding:"gte=1,lte=4096,required"`
-	ToId string `json:"to" binding:"gte=1,lte=1024,required"`
+	Msg  string `json:"text" binding:"min=1,max=4096,required"`
+	ToId string `json:"to" binding:"min=1,max=1024,required"`
 }
 
 type Ids []string
@@ -36,80 +36,6 @@ type MessageDataWithId struct {
 	Msg MessageData `bson:"msg" json:"msg"`
 }
 
-func composeChatKey(uid1 string, uid2 string) string {
-	ids := []string{uid1, uid2}
-	sort.Strings(ids)
-
-	compIndex := ids[0] + ids[1]
-	return compIndex
-}
-
-func fcmSendNewMessage(ctx *gin.Context, tokens map[string]string, msg MessageData, needsNotification bool, needsMsg bool) bool {
-
-	fbApp := ctx.MustGet(middleware.CtxVarFirebaseApp).(*firebase.App)
-	fcmClient, _ := fbApp.Messaging(ctx)
-
-	isNotification := 0
-	if needsNotification {
-		isNotification = 1
-	}
-	isMsg := 0
-	if needsMsg {
-		isMsg = 1
-	}
-
-	fcmMsgData := map[string]string{
-		"is_notification": strconv.FormatInt(int64(isNotification), 10),
-		"is_msg":          strconv.FormatInt(int64(isMsg), 10),
-	}
-
-	if needsNotification {
-		fcmMsgData["click_action"] = "FLUTTER_NOTIFICATION_CLICK"
-	}
-	if needsMsg {
-		fcmMsgData["_from"] = msg.FromId
-		fcmMsgData["to"] = msg.ToId
-		fcmMsgData["username"] = msg.FromUsername
-		fcmMsgData["msg"] = msg.Text
-		fcmMsgData["img_url"] = msg.ImgUrl
-		fcmMsgData["created_at"] = strconv.FormatInt(msg.CreatedAt, 10)
-	}
-
-	for _, token := range tokens {
-		fcmMsg := &messaging.Message{}
-
-		fcmMsg.Token = token
-		fcmMsg.Data = fcmMsgData
-		if needsNotification {
-			fcmMsg.Notification = &messaging.Notification{
-				Title: msg.FromUsername,
-				Body:  msg.Text,
-			}
-			fcmMsg.Android = &messaging.AndroidConfig{
-				Priority: "high",
-				Notification: &messaging.AndroidNotification{
-					Sound: "default",
-				},
-			}
-		}
-
-		_, err := fcmClient.Send(
-			ctx,
-			fcmMsg,
-		)
-
-		if err != nil {
-			fmt.Printf("Failed to send FCM message %s \n", err.Error())
-			// some of tokens can be invalid
-			// mb submit them for cleaning???
-
-			//ctx.String(400, apiResponse("Failed to send FCM messages", CodeInvalidArgs))
-			//return false
-		}
-
-	}
-	return true
-}
 func handleAddMessage(ctx *gin.Context) {
 	userId := ctx.MustGet(auth.CtxVarUserId).(string)
 	if len(userId) == 0 {
@@ -124,6 +50,7 @@ func handleAddMessage(ctx *gin.Context) {
 
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
+	// TODO: set userdata in CompleteRegisteredMiddleware to avoid duplicate requests
 	fromUserData := accounts.UserData{}
 	if !accounts.DBGetUserData(ctx, userId, &fromUserData) {
 		return
@@ -155,6 +82,7 @@ func handleAddMessage(ctx *gin.Context) {
 		return
 	}
 
+	//TODO: rework logic after WebSocket introduction
 	if toUserData.Tokens != nil {
 		if !fcmSendNewMessage(ctx, toUserData.Tokens, msg, true, false) {
 			return

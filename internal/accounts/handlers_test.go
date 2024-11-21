@@ -53,9 +53,9 @@ func Test_handeGetUid(t *testing.T) {
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{"For existing user", accs[0].Token, accs[0].Username, accs[0].Uid, http.StatusOK, comm.CodeSuccess},
+		{"For existing user", accs[0].Token, accs[0].Username, accs[0].Id, http.StatusOK, comm.CodeSuccess},
 		{"For non-existing user", accs[0].Token, "kkk", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
-		{"Unauthorized", "bpmbpm", accs[0].Username, accs[0].Uid, http.StatusUnauthorized, comm.CodeNotAuthenticated},
+		{"Unauthorized", "bpmbpm", accs[0].Username, accs[0].Id, http.StatusUnauthorized, comm.CodeNotAuthenticated},
 	}
 
 	for _, test := range tests {
@@ -109,9 +109,9 @@ func Test_handleGetUser(t *testing.T) {
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{accs[0].Token, accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusOK, comm.CodeSuccess},
+		{accs[0].Token, accs[0].Id, accs[0].Username, accs[0].Email, http.StatusOK, comm.CodeSuccess},
 		{accs[0].Token, "rrr", "", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
-		{"bpmbpm", accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusUnauthorized, comm.CodeNotAuthenticated},
+		{"bpmbpm", accs[0].Id, accs[0].Username, accs[0].Email, http.StatusUnauthorized, comm.CodeNotAuthenticated},
 	}
 
 	mongoInst, _ := database.NewTestMongoDBInstance()
@@ -177,7 +177,7 @@ func Test_handleRegister(t *testing.T) {
 		{"New user, empty password", "registertest2", "registertest2@t.com", "", "registertestuid2", http.StatusBadRequest, comm.CodeInvalidArgs, true, nil},
 		{"New user, invalid username format", "lal", "lala2@t.com", "passwo", "registertestuid3", http.StatusBadRequest, comm.CodeInvalidArgs, true, nil},
 		{"Existing user 1", "registertest1", "registertest1@t.com", "passwo", "registertestuid1", http.StatusBadRequest, comm.CodeUsernameTaken, true, errors.New("Error placeholder")},
-		{"Existing user 2", accs[0].Username, accs[0].Email, "passwo", accs[0].Uid, http.StatusBadRequest, comm.CodeUsernameTaken, true, errors.New("Error placeholder")},
+		{"Existing user 2", accs[0].Username, accs[0].Email, "passwo", accs[0].Id, http.StatusBadRequest, comm.CodeUsernameTaken, true, errors.New("Error placeholder")},
 		{"Existing user 3, same email, different username", "registertest2", accs[0].Email, "passwo", "registertestuid3", http.StatusBadRequest, comm.CodeCantCreateAuthUser, true, errors.New("Error placeholder")},
 	}
 
@@ -256,9 +256,9 @@ func Test_handleUpdateAvatar(t *testing.T) {
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{"Good url", accs[0].Token, accs[0].Uid, "http://example.com/exa.jpg", http.StatusOK, comm.CodeSuccess},
-		{"Empty url", accs[0].Token, accs[0].Uid, "", http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"Not url", accs[0].Token, accs[0].Uid, "abcde/klmnp", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Good url", accs[0].Token, accs[0].Id, "http://example.com/exa.jpg", http.StatusOK, comm.CodeSuccess},
+		{"Empty url", accs[0].Token, accs[0].Id, "", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Not url", accs[0].Token, accs[0].Id, "abcde/klmnp", http.StatusBadRequest, comm.CodeInvalidArgs},
 		{"No auth", "invalid", "invalid", "http://example.com/exa.jpg", http.StatusUnauthorized, comm.CodeNotAuthenticated},
 	}
 
@@ -288,9 +288,9 @@ func Test_handleCompleteRegister(t *testing.T) {
 	assert := assert.New(t)
 
 	authMock := setupPckgAuthMock(false)
-	accsNotInDB := auth.GetTestingAccountsInfo(pckgPrefix, TestingAccountsInDBCount+1, 2)
+	accsNotInDB := GetTestingAccountsInfo(pckgPrefix, TestingAccountsInDBCount+1, 2)
 	for _, acc := range accsNotInDB {
-		authMock.AddMockTestingAccount(acc)
+		authMock.AddMockTestingAccount(acc.ToTestingAuthRecord())
 	}
 	auth.FinalizeSetupAuthMock(authMock)
 
@@ -339,9 +339,9 @@ func Test_handleRegisterToken(t *testing.T) {
 	assert := assert.New(t)
 
 	authMock := setupPckgAuthMock(false)
-	accsNotInDB := auth.GetTestingAccountsInfo(pckgPrefix, TestingAccountsInDBCount+10, 2)
+	accsNotInDB := GetTestingAccountsInfo(pckgPrefix, TestingAccountsInDBCount+10, 2)
 	for _, acc := range accsNotInDB {
-		authMock.AddMockTestingAccount(acc)
+		authMock.AddMockTestingAccount(acc.ToTestingAuthRecord())
 	}
 	auth.FinalizeSetupAuthMock(authMock)
 
@@ -361,12 +361,12 @@ func Test_handleRegisterToken(t *testing.T) {
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{"Normal", accs[0].Token, accs[0].Uid, "ccc", "dddd", http.StatusOK, comm.CodeSuccess},
-		{"Too long token", accs[0].Token, accs[0].Uid, tooLongToken, "dddd", http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"Too long device name", accs[0].Token, accs[0].Uid, "eee", tooLongDeviceName, http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"Empty token", accs[0].Token, accs[0].Uid, "", "dddd", http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"Empty device name", accs[0].Token, accs[0].Uid, "eee", "", http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"Not fully registered", accsNotInDB[0].Token, accs[0].Uid, "eee", "ddd", http.StatusUnauthorized, comm.CodeUserNotRegistered},
+		{"Normal", accs[0].Token, accs[0].Id, "ccc", "dddd", http.StatusOK, comm.CodeSuccess},
+		{"Too long token", accs[0].Token, accs[0].Id, tooLongToken, "dddd", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Too long device name", accs[0].Token, accs[0].Id, "eee", tooLongDeviceName, http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Empty token", accs[0].Token, accs[0].Id, "", "dddd", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Empty device name", accs[0].Token, accs[0].Id, "eee", "", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Not fully registered", accsNotInDB[0].Token, accs[0].Id, "eee", "ddd", http.StatusUnauthorized, comm.CodeUserNotRegistered},
 	}
 
 	for _, test := range tests {

@@ -24,9 +24,9 @@ func Test_CompleteRegisteredMiddleware(t *testing.T) {
 	mongoInst, _ := database.NewTestMongoDBInstance()
 
 	testingAccountsNextIndex := TestingAccountsInDBCount
-	accNotFullyRegistered := auth.GetTestingAccountInfo(pckgPrefix, testingAccountsNextIndex)
+	accNotFullyRegistered := GetTestingAccountInfo(pckgPrefix, testingAccountsNextIndex)
 	authToken := &fbauth.Token{}
-	authToken.UID = accNotFullyRegistered.Uid
+	authToken.UID = accNotFullyRegistered.Id
 	authToken.Firebase.SignInProvider = "email"
 	authMock.On("VerifyToken", mock.Anything, accNotFullyRegistered.Token).Return(authToken, nil)
 	auth.FinalizeSetupAuthMock(authMock)
@@ -41,8 +41,8 @@ func Test_CompleteRegisteredMiddleware(t *testing.T) {
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{"Auth with completed register", accs[0].Token, accs[0].Uid, accs[0].Username, accs[0].Email, http.StatusOK, comm.CodeSuccess},
-		{"Auth with incomplete register", accNotFullyRegistered.Token, accNotFullyRegistered.Uid, accNotFullyRegistered.Username, accNotFullyRegistered.Email, http.StatusUnauthorized, comm.CodeUserNotRegistered},
+		{"Auth with completed register", accs[0].Token, accs[0].Id, accs[0].Username, accs[0].Email, http.StatusOK, comm.CodeSuccess},
+		{"Auth with incomplete register", accNotFullyRegistered.Token, accNotFullyRegistered.Id, accNotFullyRegistered.Username, accNotFullyRegistered.Email, http.StatusUnauthorized, comm.CodeUserNotRegistered},
 	}
 
 	for _, test := range tests {

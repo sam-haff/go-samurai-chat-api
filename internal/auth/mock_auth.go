@@ -58,30 +58,28 @@ func (v *MockFbAuth) AddMockUserRecord(uid string, email string, token string) {
 	v.On("VerifyToken", mock.Anything, token).Return(authToken, nil)
 	v.On("GetUser", mock.Anything, uid).Return(userRecord, nil)
 }
-func (v *MockFbAuth) AddMockTestingAccount(acc TestingAccount) {
+func (v *MockFbAuth) AddMockTestingAccount(acc TestingAuthRecord) {
 	v.AddMockUserRecord(acc.Uid, acc.Email, acc.Token)
 }
 
-type TestingAccount struct {
-	Username string
-	Email    string
-	Token    string
-	Uid      string
+type TestingAuthRecord struct {
+	Email string
+	Token string
+	Uid   string
 }
 
-func GetTestingAccountInfo(pckgPrefix string, index int) TestingAccount {
+func GetTestingAuthRecord(pckgPrefix string, index int) TestingAuthRecord {
 	indexStr := strconv.Itoa(index)
-	return TestingAccount{
-		Username: pckgPrefix + "testingacc" + indexStr,
-		Email:    pckgPrefix + "_testingacc" + indexStr + "@t.com",
-		Token:    pckgPrefix + "abcde" + indexStr,
-		Uid:      pckgPrefix + "-uid" + indexStr,
+	return TestingAuthRecord{
+		Email: pckgPrefix + "_testingacc" + indexStr + "@t.com",
+		Token: pckgPrefix + "abcde" + indexStr,
+		Uid:   pckgPrefix + "-uid" + indexStr,
 	}
 }
-func GetTestingAccountsInfo(pckgPrefix string, startingIndex int, count int) []TestingAccount {
-	accs := make([]TestingAccount, count)
+func GetTestingAuthRecords(pckgPrefix string, startingIndex int, count int) []TestingAuthRecord {
+	accs := make([]TestingAuthRecord, count)
 	for i := 0; i < count; i++ {
-		accs[i] = GetTestingAccountInfo(pckgPrefix, i+startingIndex)
+		accs[i] = GetTestingAuthRecord(pckgPrefix, i+startingIndex)
 	}
 	return accs
 }
@@ -94,7 +92,7 @@ func FinalizeSetupAuthMock(authMock *MockFbAuth) {
 
 }
 
-func SetupAuthMock(pckgPrefix string, accs []TestingAccount, finalizeSetup bool) *MockFbAuth {
+func SetupAuthMock(pckgPrefix string, accs []TestingAuthRecord, finalizeSetup bool) *MockFbAuth {
 	mockAuth := MockFbAuth{}
 	for _, acc := range accs {
 		mockAuth.AddMockTestingAccount(acc)

@@ -24,10 +24,10 @@ func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup
 
 }
 
-func CreateDBUserRecords(ctx *gin.Context, uid string, username string, email string) bool {
+func CreateDBUserRecords(ctx *gin.Context, userData UserData) bool {
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
-	if err := dbCreateUserRecordsInternal(ctx, mongoInst, uid, username, email); err != nil {
+	if err := dbCreateUserRecordsInternal(ctx, mongoInst, userData); err != nil {
 		comm.AbortBadRequest(ctx, err.Error(), comm.CodeCantCreateAuthUser)
 		return false
 	}
@@ -97,7 +97,7 @@ func handleRegister(ctx *gin.Context) {
 		return
 	}
 
-	if !CreateDBUserRecords(ctx, userRecord.UID, params.Username, params.Email) {
+	if !CreateDBUserRecords(ctx, UserData{Id: userRecord.UID, Username: params.Username, Email: params.Email}) {
 		return
 	}
 
@@ -173,7 +173,7 @@ func handleCompleteRegister(ctx *gin.Context) {
 		return
 	}
 
-	if !CreateDBUserRecords(ctx, authToken.UID, params.Username, email) {
+	if !CreateDBUserRecords(ctx, UserData{Id: authToken.UID, Username: params.Username, Email: email}) {
 		//all responces are handled inside func
 		return
 	}
