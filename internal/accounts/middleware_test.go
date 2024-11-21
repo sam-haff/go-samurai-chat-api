@@ -49,11 +49,9 @@ func Test_CompleteRegisteredMiddleware(t *testing.T) {
 		routes := gin.Default()
 		routes.Use(auth.InjectAuth(authMock), database.InjectDB(mongoInst))
 		testHandler := func(ctx *gin.Context) {
-			username := ctx.MustGet(CtxVarUserUsername)
-			assert.Equal(test.username, username, "wrong username")
-
-			email := ctx.MustGet(CtxVarUserEmail)
-			assert.Equal(test.email, email, "wrong email")
+			userdata := ctx.MustGet(CtxVarUserData).(UserData)
+			assert.Equal(test.username, userdata.Username, "wrong username")
+			assert.Equal(test.email, userdata.Email, "wrong email")
 
 			comm.GenericOK(ctx)
 		}

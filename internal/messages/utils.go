@@ -3,13 +3,16 @@ package messages
 import (
 	"context"
 	"fmt"
+	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/database"
 	"sort"
 	"strconv"
+	"time"
 
 	"firebase.google.com/go/v4/messaging"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -52,6 +55,32 @@ func DBGetMessagesUtil(ctx context.Context, mongoInst *database.MongoDBInstance,
 	}
 
 	return UtilStatusOk
+}
+func NewMessageData(from accounts.UserData, toUserId string, msg string) MessageData {
+	compKey := composeChatKey(from.Id, toUserId)
+	return MessageData{
+		MsgId:          primitive.NewObjectID(),
+		ConversationID: compKey,
+		Text:           msg,
+		FromId:         from.Id,
+		ToId:           toUserId,
+		FromUsername:   from.Username,
+		ImgUrl:         from.Img_url,
+		CreatedAt:      time.Now().UnixMilli(),
+	}
+}
+func DBAddMessageUtil(ctx context.Context, mongoInst *database.MongoDBInstance, msg MessageData) error {
+	messagesCollection := mongoInst.Collection(database.MessagesCollection)
+
+	_, err := messagesCollection.InsertOne(ctx, msg)
+
+	if err != nil {
+		//respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
+		//comm.AbortBadRequest(ctx, respMsg, comm.CodeInvalidArgs)
+		return err
+	}
+
+	return nil
 }
 
 func composeChatKey(uid1 string, uid2 string) string {

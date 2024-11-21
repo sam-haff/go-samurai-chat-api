@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	CtxVarUserUsername = "user-username"
-	CtxVarUserEmail    = "user-email"
+	CtxVarUserData = "user-userdata"
 )
 
 func CompleteRegisteredMiddleware(ctx *gin.Context) {
@@ -25,6 +24,5 @@ func CompleteRegisteredMiddleware(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Set(CtxVarUserUsername, userData.Username)
-	ctx.Set(CtxVarUserEmail, userData.Email)
+	ctx.Set(CtxVarUserData, userData) // TODO: consider using pointer
 }

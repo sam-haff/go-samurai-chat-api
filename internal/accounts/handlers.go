@@ -228,7 +228,7 @@ func handleRegisterToken(ctx *gin.Context) {
 	}
 	userData.Tokens[params.DeviceName] = params.Token
 
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "tokens", Value: userData.Tokens}}}} //bson.D{$set: {"tokens", userData.Tokens}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "tokens", Value: userData.Tokens}}}}
 	_, err = usersCollection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to write tokens to db with: %s", err.Error())

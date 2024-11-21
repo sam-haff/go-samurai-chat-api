@@ -2,10 +2,8 @@ package messages
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/auth"
@@ -14,8 +12,8 @@ import (
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
-	authRoutes.POST("/addmessage", handleAddMessage)
-	authRoutes.POST("/chat", handleGetChat)
+	authRoutes.POST("/addmessage", accounts.CompleteRegisteredMiddleware, handleAddMessage)
+	authRoutes.POST("/chat", accounts.CompleteRegisteredMiddleware, handleGetChat)
 }
 
 const (
@@ -50,32 +48,14 @@ func handleAddMessage(ctx *gin.Context) {
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
 	// TODO: set userdata in CompleteRegisteredMiddleware to avoid duplicate requests
-	fromUserData := accounts.UserData{}
-	if !accounts.DBGetUserData(ctx, userId, &fromUserData) {
-		return
-	}
+	fromUserData := ctx.MustGet(accounts.CtxVarUserData).(accounts.UserData)
 	toUserData := accounts.UserData{}
 	if !accounts.DBGetUserData(ctx, params.ToId, &toUserData) {
 		return
 	}
 
-	compIndex := composeChatKey(userId, params.ToId)
-
-	msg := MessageData{
-		MsgId:          primitive.NewObjectID(),
-		ConversationID: compIndex,
-		Text:           params.Msg,
-		FromId:         userId,
-		ToId:           params.ToId,
-		FromUsername:   fromUserData.Username,
-		ImgUrl:         fromUserData.Img_url,
-		CreatedAt:      time.Now().UnixMilli(),
-	}
-
-	messagesCollection := mongoInst.Collection(database.MessagesCollection)
-
-	_, err := messagesCollection.InsertOne(ctx, msg)
-
+	msg := NewMessageData(fromUserData, params.ToId, params.Msg)
+	err := DBAddMessageUtil(ctx, mongoInst, msg)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
 		comm.AbortBadRequest(ctx, respMsg, comm.CodeInvalidArgs)
