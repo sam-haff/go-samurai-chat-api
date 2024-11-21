@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/auth"
@@ -63,6 +62,7 @@ func handleAddMessage(ctx *gin.Context) {
 	compIndex := composeChatKey(userId, params.ToId)
 
 	msg := MessageData{
+		MsgId:          primitive.NewObjectID(),
 		ConversationID: compIndex,
 		Text:           params.Msg,
 		FromId:         userId,
@@ -123,31 +123,13 @@ func handleGetChat(ctx *gin.Context) {
 	fmt.Printf("Getting msgs before %d\n", params.BeforeTimeStamp)
 
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
-	messagesCollection := mongoInst.Collection(database.MessagesCollection)
-
-	opts := options.Find().SetLimit(int64(params.Limit)).SetSort(bson.D{{Key: "created_at", Value: -1}})
-
-	compKey := composeChatKey(userId, params.With)
-
-	fmt.Printf("Gettting chat with comp key %s\n", compKey)
-
-	filter := bson.D{
-		{
-			Key: "$and", Value: bson.A{
-				bson.D{{Key: "conv_id", Value: compKey}},
-				bson.D{{Key: "created_at", Value: bson.D{{Key: "$lt", Value: params.BeforeTimeStamp}}}},
-			},
-		}}
-	cursor, err := messagesCollection.Find(ctx, filter, opts)
-	if err != nil {
+	var messages []MessageData
+	res := DBGetMessagesUtil(ctx, mongoInst, userId, params.With, params.Limit, false, params.BeforeTimeStamp, &messages)
+	if res == UtilStatusNotFound {
 		comm.AbortBadRequest(ctx, "Failed to fetch messages", comm.CodeInvalidArgs)
 		return
 	}
-
-	var messages []MessageData
-
-	err = cursor.All(ctx, &messages)
-	if err != nil {
+	if res == UtilStatusCantParse {
 		comm.AbortBadRequest(ctx, "Couldnt parse data from db", comm.CodeInvalidArgs)
 		return
 	}

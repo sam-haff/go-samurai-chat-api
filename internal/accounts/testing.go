@@ -28,9 +28,6 @@ func SetupTestingAccounts(accs []TestingAccount) {
 type TestingAccount struct {
 	UserData
 	Token string
-	//Username string
-	//Email    string
-	//Uid      string
 }
 
 func (acc TestingAccount) ToTestingAuthRecord() auth.TestingAuthRecord {
@@ -47,6 +44,7 @@ func NewTestingAccountFromAuthRecord(authRecord auth.TestingAuthRecord, username
 			Username: username,
 			Email:    authRecord.Email,
 			Id:       authRecord.Uid,
+			Tokens:   tokens,
 		},
 		Token: authRecord.Token,
 	}

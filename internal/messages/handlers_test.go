@@ -2,6 +2,7 @@ package messages
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"go-chat-app-api/internal/accounts"
 	"go-chat-app-api/internal/auth"
@@ -9,11 +10,13 @@ import (
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/testutils"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"firebase.google.com/go/v4/messaging"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -33,6 +36,11 @@ func getRoutes(mockAuth *auth.MockFbAuth, mongoInst *database.MongoDBInstance, f
 	return routes
 }
 
+func getFcmMsgMatcher(fcmToken string, title string, body string) func(*messaging.Message) bool {
+	return func(msg *messaging.Message) bool {
+		return msg.Token == fcmToken && msg.Notification.Title == title && msg.Notification.Body == body
+	}
+}
 func Test_handleAddMessage(t *testing.T) {
 	assert := assert.New(t)
 
@@ -40,7 +48,6 @@ func Test_handleAddMessage(t *testing.T) {
 	authMock := setupPckgAuthMock(false)
 	mongoInst, _ := database.NewTestMongoDBInstance()
 	fcmMock := &FcmClientMock{}
-	fcmMock.On("Send", mock.Anything, mock.Anything) // TODO make it more detailed to check correctness of the FCM message submit
 	routes := getRoutes(authMock, mongoInst, fcmMock)
 
 	accNotInDB := accounts.GetTestingAccountInfo(pckgPrefix, TestingAccountsInDBCount)
@@ -51,6 +58,19 @@ func Test_handleAddMessage(t *testing.T) {
 	accIdTooLarge := accounts.GetTestingAccountInfo(pckgPrefix, TestingAccountsInDBCount) //TODO remove duplciate call
 	accIdTooLarge.Id = strings.Repeat("a", MaxIdLength+1)
 
+	compKey := composeChatKey(accs[0].Id, accs[1].Id)
+	msg1 := MessageData{
+		FromId:         accs[0].Id,
+		ToId:           accs[1].Id,
+		FromUsername:   accs[0].Username,
+		Text:           "Message content 1",
+		ConversationID: compKey}
+	msg2 := MessageData{
+		FromId:         accs[1].Id,
+		ToId:           accs[0].Id,
+		FromUsername:   accs[1].Username,
+		Text:           "Message content 2",
+		ConversationID: compKey}
 	//tests
 	//cases: normal, incomplete registration, invalid receiver id, invalid binding
 	// + check final db records to ensure that msgs are added correcctly
@@ -59,14 +79,24 @@ func Test_handleAddMessage(t *testing.T) {
 		sender                 accounts.TestingAccount
 		receiver               accounts.TestingAccount
 		msg                    string
+		expectedResultingChat  []MessageData
 		expectedStatus         int
 		expectedCommStatusCode int
 	}{
-		{"Normal", accs[0], accs[1], "Message content", http.StatusOK, comm.CodeSuccess},
-		{"Receiver not fully registered", accs[0], accNotInDB, "Message content", http.StatusBadRequest, comm.CodeUserNotRegistered},
-		{"Invalid msg format", accs[0], accs[1], msgTooLarge, http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"Invalid id format", accs[0], accIdTooLarge, "Message content", http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Normal, first message", accs[0], accs[1], msg1.Text, []MessageData{msg1}, http.StatusOK, comm.CodeSuccess},
+		{"Normal, response message", accs[1], accs[0], msg2.Text, []MessageData{msg2, msg1}, http.StatusOK, comm.CodeSuccess},
+		{"Receiver not fully registered", accs[0], accNotInDB, "Message content", []MessageData{}, http.StatusBadRequest, comm.CodeUserNotRegistered},
+		{"Invalid msg format", accs[0], accs[1], msgTooLarge, []MessageData{}, http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Invalid id format", accs[0], accIdTooLarge, "Message content", []MessageData{}, http.StatusBadRequest, comm.CodeInvalidArgs},
 	}
+
+	//setup fcm mock
+	for _, test := range tests {
+		if test.expectedStatus == http.StatusOK {
+			fcmMock.On("Send", mock.Anything, mock.MatchedBy(getFcmMsgMatcher(test.receiver.Tokens["device"], test.sender.Username, test.msg))).Return("", nil)
+		}
+	}
+	fcmMock.On("Send", mock.Anything, mock.Anything).Return("", nil) // TODO make it more detailed to check correctness of the FCM message submit
 
 	for _, test := range tests {
 		testutils.PrintTestName(t, test.name)
@@ -87,9 +117,24 @@ func Test_handleAddMessage(t *testing.T) {
 		assert.Nil(err, "invalid response format")
 		assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm status code")
 
+		//check correctness of db records
 		if resp.StatusCode == http.StatusOK {
-			// check on correctness of db records
+			var dbMsgs []MessageData
+			res := DBGetMessagesUtil(context.Background(), mongoInst, test.sender.Id, test.receiver.Id, 1024, false, math.MaxInt64, &dbMsgs)
+			assert.Equal(UtilStatusOk, res, "failed to get messages from db")
+			assert.Equal(len(test.expectedResultingChat), len(dbMsgs), "wrong number of messages in db")
+			if len(test.expectedResultingChat) == len(dbMsgs) {
+				for i, msg := range test.expectedResultingChat {
+					assert.Equal(msg.FromId, dbMsgs[i].FromId, "wrong id of sender")
+					assert.Equal(msg.ToId, dbMsgs[i].ToId, "wrong id of receiver")
+					assert.Equal(msg.Text, dbMsgs[i].Text, "wrong message text")
+					assert.Equal(msg.FromUsername, dbMsgs[i].FromUsername, "wrong username of sender")
+					assert.Equal(msg.ConversationID, dbMsgs[i].ConversationID, "wrong message conversation id")
+				}
+			}
 		}
+
 	}
 
+	fcmMock.AssertExpectations(t)
 }
