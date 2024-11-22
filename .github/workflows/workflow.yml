@@ -19,10 +19,5 @@ jobs:
         run: ls
       - name: Run tests
         run: |
-          cd ./test_mongodb
-          docker compose up -d --wait
-          cd ..
-          go test -v ./...
-          cd ./test_mongodb
-          docker compose down
-          cd ..
+          cd ./scripts
+          sudo -E bash ./run_tests_lx.sh
