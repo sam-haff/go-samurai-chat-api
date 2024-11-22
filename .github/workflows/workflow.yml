@@ -16,4 +16,4 @@ jobs:
       - name: Get deps
         run: go get ./...
       - name: Run tests
-        run: ./scripts/run_tests.sh
+        run: sudo ./scripts/run_tests.sh
