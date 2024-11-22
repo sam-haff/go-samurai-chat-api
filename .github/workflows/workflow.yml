@@ -20,5 +20,5 @@ jobs:
       - name: Run tests
         run: |
           cd ./scripts
-          sudo bash ./run_tests.sh
+          sudo bash ./run_tests_lx.sh
           cd ..
