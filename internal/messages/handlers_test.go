@@ -13,6 +13,7 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -137,4 +138,84 @@ func Test_handleAddMessage(t *testing.T) {
 	}
 
 	fcmMock.AssertExpectations(t)
+}
+
+func Test_handleGetChat(t *testing.T) {
+	assert := assert.New(t)
+
+	accs := getPckgTestingAccountsInfo()
+	authMock := setupPckgAuthMock(true)
+	mongoInst, _ := database.NewTestMongoDBInstance()
+	routes := getRoutes(authMock, mongoInst, nil)
+	accNotInDB := accounts.GetTestingAccountsInfo(pckgPrefix, TestingAccountsInDBCount+10, 1)[0] //getPckgTestingAccountsInfo()
+	accIdTooLarge := accNotInDB
+	accIdTooLarge.Id = strings.Repeat("a", 2000)
+
+	ctx := context.Background()
+	acc1 := accs[0]
+	acc2 := accs[2]
+	msgsToAdd := []MessageData{
+		NewMessageData(acc1.UserData, acc2.Id, "Hello"),
+		NewMessageData(acc2.UserData, acc1.Id, "Hi"),
+		NewMessageData(acc1.UserData, acc2.Id, "How are you?"),
+	}
+	for _, msg := range msgsToAdd {
+		DBAddMessageUtil(ctx, mongoInst, msg)
+	}
+
+	tests := []struct {
+		name                        string
+		authAcc                     accounts.TestingAccount
+		to                          accounts.TestingAccount
+		limit                       int
+		expectedMessagesInSendOrder []MessageData
+		expectedStatus              int
+		expectedCommStatusCode      int
+	}{
+		{"Normal 1", acc1, acc2, 10, msgsToAdd, http.StatusOK, comm.CodeSuccess},
+		{"Normal 2", acc2, acc1, 10, msgsToAdd, http.StatusOK, comm.CodeSuccess},
+		{"Invalid receiver", acc1, accNotInDB, 10, msgsToAdd, http.StatusBadRequest, comm.CodeUserNotRegistered},
+		{"Empty chat", acc1, accs[3], 10, []MessageData{}, http.StatusOK, comm.CodeSuccess},
+		{"Too big limit", acc1, acc2, 10000000, msgsToAdd, http.StatusBadRequest, comm.CodeInvalidArgs},
+		{"Too large To id", acc1, accIdTooLarge, 10, msgsToAdd, http.StatusBadRequest, comm.CodeInvalidArgs},
+	}
+
+	for _, test := range tests {
+		testutils.PrintTestName(t, test.name)
+
+		params := GetChatParams{Limit: test.limit, BeforeTimeStamp: math.MaxInt64, With: test.to.Id, Inverse: false}
+		paramsBytes, _ := json.Marshal(params)
+		req, _ := http.NewRequest("POST", "/chat", bytes.NewBuffer(paramsBytes))
+		rec := httptest.NewRecorder()
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+test.authAcc.Token)
+
+		routes.ServeHTTP(rec, req)
+
+		resp := rec.Result()
+		assert.Equal(test.expectedStatus, resp.StatusCode, "wrong http status code")
+		respJsonBytes, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusOK {
+			respJson := comm.ApiResponseWith[[]MessageData]{}
+			err := json.Unmarshal(respJsonBytes, &respJson)
+			assert.Nil(err, "invalid response format")
+			assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm code")
+
+			assert.Equal(len(test.expectedMessagesInSendOrder), len(respJson.Result.Obj), "got wrong number of messages")
+			if len(test.expectedMessagesInSendOrder) == len(respJson.Result.Obj) {
+				for i, msg := range slices.Backward(test.expectedMessagesInSendOrder) {
+					assert.Equal(msg.FromId, respJson.Result.Obj[i].FromId)
+					assert.Equal(msg.ToId, respJson.Result.Obj[i].ToId)
+					assert.Equal(msg.Text, respJson.Result.Obj[i].Text)
+					assert.Equal(msg.FromUsername, respJson.Result.Obj[i].FromUsername)
+					assert.Equal(msg.ConversationID, respJson.Result.Obj[i].ConversationID)
+				}
+			}
+		} else {
+			respJson := comm.ApiResponsePlain{}
+			err := json.Unmarshal(respJsonBytes, &respJson)
+			assert.Nil(err, "invalid response format")
+			assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm code")
+		}
+	}
 }

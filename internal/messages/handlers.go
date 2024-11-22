@@ -100,6 +100,11 @@ func handleGetChat(ctx *gin.Context) {
 		return
 	}
 
+	toUserData := accounts.UserData{}
+	if !accounts.DBGetUserData(ctx, params.With, &toUserData) { // correspondent should have valid registration
+		return
+	}
+
 	fmt.Printf("Getting msgs before %d\n", params.BeforeTimeStamp)
 
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)

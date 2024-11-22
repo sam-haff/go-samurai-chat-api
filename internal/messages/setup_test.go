@@ -17,7 +17,7 @@ const pckgPrefix = "messages"
 
 const (
 	TestingAccountsInDBStartingIndex = 0
-	TestingAccountsInDBCount         = 2
+	TestingAccountsInDBCount         = 4
 )
 
 func getPckgTestingAuthRecords() []auth.TestingAuthRecord {

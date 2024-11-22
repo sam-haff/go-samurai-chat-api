@@ -83,11 +83,11 @@
 				
 				<option value="file13">go-chat-app-api/internal/messages/fcm_client_mock.go (100.0%)</option>
 				
-				<option value="file14">go-chat-app-api/internal/messages/handlers.go (47.2%)</option>
+				<option value="file14">go-chat-app-api/internal/messages/handlers.go (75.0%)</option>
 				
 				<option value="file15">go-chat-app-api/internal/messages/middleware.go (100.0%)</option>
 				
-				<option value="file16">go-chat-app-api/internal/messages/utils.go (94.0%)</option>
+				<option value="file16">go-chat-app-api/internal/messages/utils.go (93.0%)</option>
 				
 				<option value="file17">go-chat-app-api/internal/middleware/middleware.go (100.0%)</option>
 				
@@ -388,7 +388,7 @@ func handleRegisterToken(ctx *gin.Context) <span class="cov8" title="1">{
         }</span>
         <span class="cov8" title="1">userData.Tokens[params.DeviceName] = params.Token
 
-        update := bson.D{{Key: "$set", Value: bson.D{{Key: "tokens", Value: userData.Tokens}}}} //bson.D{$set: {"tokens", userData.Tokens}}
+        update := bson.D{{Key: "$set", Value: bson.D{{Key: "tokens", Value: userData.Tokens}}}}
         _, err = usersCollection.UpdateOne(ctx, filter, update)
         if err != nil </span><span class="cov0" title="0">{
                 respMsg := fmt.Sprintf("Failed to write tokens to db with: %s", err.Error())
@@ -412,8 +412,7 @@ import (
 )
 
 const (
-        CtxVarUserUsername = "user-username"
-        CtxVarUserEmail    = "user-email"
+        CtxVarUserData = "user-userdata"
 )
 
 func CompleteRegisteredMiddleware(ctx *gin.Context) <span class="cov8" title="1">{
@@ -428,8 +427,7 @@ func CompleteRegisteredMiddleware(ctx *gin.Context) <span class="cov8" title="1"
                 return
         }</span>
 
-        <span class="cov8" title="1">ctx.Set(CtxVarUserUsername, userData.Username)
-        ctx.Set(CtxVarUserEmail, userData.Email)</span>
+        <span class="cov8" title="1">ctx.Set(CtxVarUserData, userData)</span> // TODO: consider using pointer
 }
 </pre>
 		
@@ -1079,10 +1077,8 @@ func (fcm *FcmClientMock) Send(ctx context.Context, msg *messaging.Message) (str
 
 import (
         "fmt"
-        "time"
 
         "github.com/gin-gonic/gin"
-        "go.mongodb.org/mongo-driver/bson/primitive"
 
         "go-chat-app-api/internal/accounts"
         "go-chat-app-api/internal/auth"
@@ -1091,8 +1087,8 @@ import (
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) <span class="cov8" title="1">{
-        authRoutes.POST("/addmessage", handleAddMessage)
-        authRoutes.POST("/chat", handleGetChat)
+        authRoutes.POST("/addmessage", accounts.CompleteRegisteredMiddleware, handleAddMessage)
+        authRoutes.POST("/chat", accounts.CompleteRegisteredMiddleware, handleGetChat)
 }</span>
 
 const (
@@ -1127,32 +1123,14 @@ func handleAddMessage(ctx *gin.Context) <span class="cov8" title="1">{
         <span class="cov8" title="1">mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
         // TODO: set userdata in CompleteRegisteredMiddleware to avoid duplicate requests
-        fromUserData := accounts.UserData{}
-        if !accounts.DBGetUserData(ctx, userId, &amp;fromUserData) </span><span class="cov0" title="0">{
-                return
-        }</span>
-        <span class="cov8" title="1">toUserData := accounts.UserData{}
+        fromUserData := ctx.MustGet(accounts.CtxVarUserData).(accounts.UserData)
+        toUserData := accounts.UserData{}
         if !accounts.DBGetUserData(ctx, params.ToId, &amp;toUserData) </span><span class="cov8" title="1">{
                 return
         }</span>
 
-        <span class="cov8" title="1">compIndex := composeChatKey(userId, params.ToId)
-
-        msg := MessageData{
-                MsgId:          primitive.NewObjectID(),
-                ConversationID: compIndex,
-                Text:           params.Msg,
-                FromId:         userId,
-                ToId:           params.ToId,
-                FromUsername:   fromUserData.Username,
-                ImgUrl:         fromUserData.Img_url,
-                CreatedAt:      time.Now().UnixMilli(),
-        }
-
-        messagesCollection := mongoInst.Collection(database.MessagesCollection)
-
-        _, err := messagesCollection.InsertOne(ctx, msg)
-
+        <span class="cov8" title="1">msg := NewMessageData(fromUserData, params.ToId, params.Msg)
+        err := DBAddMessageUtil(ctx, mongoInst, msg)
         if err != nil </span><span class="cov0" title="0">{
                 respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
                 comm.AbortBadRequest(ctx, respMsg, comm.CodeInvalidArgs)
@@ -1184,20 +1162,25 @@ type GetChatParams struct {
         Inverse         bool   `json:"inverse"`
 }
 
-func handleGetChat(ctx *gin.Context) <span class="cov0" title="0">{
+func handleGetChat(ctx *gin.Context) <span class="cov8" title="1">{
         userId := ctx.MustGet(auth.CtxVarUserId).(string) // 500 if no auth middleware
         if len(userId) == 0 </span><span class="cov0" title="0">{
                 return
         }</span>
 
-        <span class="cov0" title="0">params := GetChatParams{}
-        if err := ctx.ShouldBind(&amp;params); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">params := GetChatParams{}
+        if err := ctx.ShouldBind(&amp;params); err != nil </span><span class="cov8" title="1">{
                 fmt.Printf("Invalid params\n")
                 comm.AbortFailedBinding(ctx, err)
                 return
         }</span>
 
-        <span class="cov0" title="0">fmt.Printf("Getting msgs before %d\n", params.BeforeTimeStamp)
+        <span class="cov8" title="1">toUserData := accounts.UserData{}
+        if !accounts.DBGetUserData(ctx, params.With, &amp;toUserData) </span><span class="cov8" title="1">{ // correspondent should have valid registration
+                return
+        }</span>
+
+        <span class="cov8" title="1">fmt.Printf("Getting msgs before %d\n", params.BeforeTimeStamp)
 
         mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
         var messages []MessageData
@@ -1206,12 +1189,12 @@ func handleGetChat(ctx *gin.Context) <span class="cov0" title="0">{
                 comm.AbortBadRequest(ctx, "Failed to fetch messages", comm.CodeInvalidArgs)
                 return
         }</span>
-        <span class="cov0" title="0">if res == UtilStatusCantParse </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if res == UtilStatusCantParse </span><span class="cov0" title="0">{
                 comm.AbortBadRequest(ctx, "Couldnt parse data from db", comm.CodeInvalidArgs)
                 return
         }</span>
 
-        <span class="cov0" title="0">comm.GenericOKJSON(ctx, messages)</span>
+        <span class="cov8" title="1">comm.GenericOKJSON(ctx, messages)</span>
 }
 </pre>
 		
@@ -1233,13 +1216,16 @@ func InjectFcm(fcm FcmClient) gin.HandlerFunc <span class="cov8" title="1">{
 import (
         "context"
         "fmt"
+        "go-chat-app-api/internal/accounts"
         "go-chat-app-api/internal/database"
         "sort"
         "strconv"
+        "time"
 
         "firebase.google.com/go/v4/messaging"
         "github.com/gin-gonic/gin"
         "go.mongodb.org/mongo-driver/bson"
+        "go.mongodb.org/mongo-driver/bson/primitive"
         "go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -1282,6 +1268,32 @@ func DBGetMessagesUtil(ctx context.Context, mongoInst *database.MongoDBInstance,
         }</span>
 
         <span class="cov8" title="1">return UtilStatusOk</span>
+}
+func NewMessageData(from accounts.UserData, toUserId string, msg string) MessageData <span class="cov8" title="1">{
+        compKey := composeChatKey(from.Id, toUserId)
+        return MessageData{
+                MsgId:          primitive.NewObjectID(),
+                ConversationID: compKey,
+                Text:           msg,
+                FromId:         from.Id,
+                ToId:           toUserId,
+                FromUsername:   from.Username,
+                ImgUrl:         from.Img_url,
+                CreatedAt:      time.Now().UnixMilli(),
+        }
+}</span>
+func DBAddMessageUtil(ctx context.Context, mongoInst *database.MongoDBInstance, msg MessageData) error <span class="cov8" title="1">{
+        messagesCollection := mongoInst.Collection(database.MessagesCollection)
+
+        _, err := messagesCollection.InsertOne(ctx, msg)
+
+        if err != nil </span><span class="cov0" title="0">{
+                //respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
+                //comm.AbortBadRequest(ctx, respMsg, comm.CodeInvalidArgs)
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
 }
 
 func composeChatKey(uid1 string, uid2 string) string <span class="cov8" title="1">{
