@@ -18,4 +18,4 @@ jobs:
       - name: Check folder struct
         run: ls
       - name: Run tests
-        run: sudo ./scripts/run_tests.sh
+        run: sudo bash ./scripts/run_tests.sh
