@@ -22,7 +22,7 @@ jobs:
           cd ./test_mongodb
           docker compose up -d --wait
           cd ..
-          go test ./...
+          go test -v ./...
           cd ./test_mongodb
           docker compose down
           cd ..
