@@ -1,5 +1,4 @@
 #!/bin/bash
-cd ..
 
 if [ ! -d "../images" ]; then
  mkdir ../images 
