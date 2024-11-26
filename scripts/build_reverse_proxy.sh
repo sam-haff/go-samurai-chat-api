@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if not exist "/images" mkdir /images
+if [ -d "./images" ]; then
+ mkdir images 
+fi
 
 echo "building go-chat-app-api-reverse-proxy image..."
 docker build -t go-chat-app-api-reverse-proxy ../nginx/.

@@ -15,9 +15,30 @@ jobs:
           go-version: 1.23.3
       - name: Get deps
         run: go get ./...
-      - name: Check folder struct
-        run: ls
       - name: Run tests
         run: |
           cd ./scripts
           sudo -E bash ./run_tests_lx.sh
+  deploy:
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - name: Get code
+              uses: actions/checkout@v3
+            - name: Build and transfer
+              env:
+                SERVER_ADDR: ${{ secrets.SERVER_ADDR }}
+                SSH_KEY_PWD: ${{ secrets.SSH_KEY_PWD }}
+                SERVER_BUILD_NUMBER: ${{ github.run_number }}
+                MONGODB_CONNECT_URL: ${{ secrets.MONGODB_CONNECT_URL }}
+                FIREBASE_CREDS_FILE: ${{ secrets.FIREBASE_CREDS_FILE }}
+              run: |
+                echo "${{ secrets.FIREBASE_CREDS_JSON }}" >> ${{ secrets.FIREBASE_CREDS_FILE }}
+                mkdir ./nginx/certs
+                echo "${{ secrets.SSL_FULLCHAIN_PEM }}" >> ./nginx/certs/fullchain.pem
+                echo "${{ secrets.SSL_PRIVKEY_PEM }}" >> ./nginx/certs/privkey.pem
+                cd ./scripts
+                echo "${{ secrets.SSH_KEY_PEM }}" >> ./ssh-key.pem
+                sudo -E bash ./make_env_file.sh
+                sudo -E bash ./make_build_info.sh
+                sudo -E bash ./build_and_transfer.sh

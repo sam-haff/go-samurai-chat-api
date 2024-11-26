@@ -1,5 +1,5 @@
 #!/bin/sh
 
-call build.bat
-call transfer.bat
+./build.sh
+./transfer.bat
 

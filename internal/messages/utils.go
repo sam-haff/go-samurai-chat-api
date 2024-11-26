@@ -75,8 +75,6 @@ func DBAddMessageUtil(ctx context.Context, mongoInst *database.MongoDBInstance, 
 	_, err := messagesCollection.InsertOne(ctx, msg)
 
 	if err != nil {
-		//respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
-		//comm.AbortBadRequest(ctx, respMsg, comm.CodeInvalidArgs)
 		return err
 	}
 

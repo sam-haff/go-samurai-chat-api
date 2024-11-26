@@ -1,7 +1,11 @@
 #!/bin/bash
-if [ -d "$DIRECTORY" ]; then
+cd ..
+
+if [ -d "./images" ]; then
  mkdir images 
 fi
+
+./make_env_file.sh
 
 echo "building go-chat-app-api image..."
 docker build -t go-chat-app-api ../. 
