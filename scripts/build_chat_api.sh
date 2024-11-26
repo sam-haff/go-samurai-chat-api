@@ -6,6 +6,7 @@ if [ -d "./images" ]; then
 fi
 
 ./make_env_file.sh
+./make_build_info.sh
 
 echo "building go-chat-app-api image..."
 docker build -t go-chat-app-api ../. 

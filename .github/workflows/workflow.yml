@@ -39,6 +39,4 @@ jobs:
                 echo "${{ secrets.SSL_PRIVKEY_PEM }}" >> ./nginx/certs/privkey.pem
                 cd ./scripts
                 echo "${{ secrets.SSH_KEY_PEM }}" >> ./ssh-key.pem
-                sudo -E bash ./make_env_file.sh
-                sudo -E bash ./make_build_info.sh
                 sudo -E bash ./build_and_transfer.sh

@@ -5,6 +5,5 @@ if [[ -z "$FIREBASE_CREDS_FILE" || -z "$MONGODB_CONNECT_URL" ]]; then
   exit 1
 fi
 
-touch ../.env
 echo "FIREBASE_CREDS_FILE=$FIREBASE_CREDS_FILE" >> ../.env
 echo "MONGODB_CONNECT_URL=$MONGODB_CONNECT_URL" >> ../.env

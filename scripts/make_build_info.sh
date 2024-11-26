@@ -5,5 +5,4 @@ if [[ -z "$SERVER_BUILD_NUMBER" ]] ; then
     exit 1
 fi
 
-touch ../images/build_info.json
 echo "{ \"version\":"$SERVER_BUILD_NUMBER" }" >> ../images/build_info.json
