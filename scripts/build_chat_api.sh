@@ -1,8 +1,8 @@
 #!/bin/bash
 cd ..
 
-if [ -d "./images" ]; then
- mkdir images 
+if [ -d "../images" ]; then
+ mkdir ../images 
 fi
 
 ./make_env_file.sh

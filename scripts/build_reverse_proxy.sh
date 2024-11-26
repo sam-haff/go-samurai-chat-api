@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ -d "./images" ]; then
- mkdir images 
+if [ -d "../images" ]; then
+ mkdir ../images 
 fi
 
 echo "building go-chat-app-api-reverse-proxy image..."
