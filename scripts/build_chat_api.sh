@@ -1,7 +1,7 @@
 #!/bin/bash
 cd ..
 
-if [ -d "../images" ]; then
+if [ ! -d "../images" ]; then
  mkdir ../images 
 fi
 

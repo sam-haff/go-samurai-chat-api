@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -d "../images" ]; then
+if [ ! -d "../images" ]; then
  mkdir ../images 
 fi
 
