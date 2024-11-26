@@ -1,5 +1,5 @@
 #!/bin/sh
 
-./build.sh
-./transfer.bat
+sudo -E bash ./build.sh
+sudo -E bash ./transfer.sh
 
