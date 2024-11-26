@@ -33,6 +33,7 @@ jobs:
                 MONGODB_CONNECT_URL: ${{ secrets.MONGODB_CONNECT_URL }}
                 FIREBASE_CREDS_FILE: ${{ secrets.FIREBASE_CREDS_FILE }}
               run: |
+                sudo ssh-keyscan -H $SERVER_ADDR >> ~/.ssh/known_hosts
                 echo "${{ secrets.FIREBASE_CREDS_JSON }}" >> ${{ secrets.FIREBASE_CREDS_FILE }}
                 mkdir ./nginx/certs
                 echo "${{ secrets.SSL_FULLCHAIN_PEM }}" >> ./nginx/certs/fullchain.pem
