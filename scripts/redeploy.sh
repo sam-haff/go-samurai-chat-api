@@ -22,13 +22,9 @@ function deploy() {
     if [ $? -ne 0 ]; then
         echo "New version is available, restarting the server..."
 
-        cp * ../running
         cd ../running
-
-        if [ ! -z `docker ps -q --no-trunc | grep $(docker-compose ps -q 'api')` ]; then
-            docker compose down
-        fi
-
+        docker compose down
+        cp ../new/* ./
         ./load_images.sh
         docker compose up -d
 
@@ -39,10 +35,13 @@ function deploy() {
     if [ -z `docker ps -q --no-trunc | grep $(docker-compose ps -q 'api')` ]; then 
         echo "Server is not running, starting up..."
         docker compose down # just to be sure
+        ./load_images
         docker compose up -d
+
+        return $?
     fi
 
-    return $? 
+    return 1
 }
 
 deploy
