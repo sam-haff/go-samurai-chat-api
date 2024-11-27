@@ -11,7 +11,11 @@ import (
 	"go-chat-app-api/internal/middleware"
 )
 
-func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) { //routers *gin.Engine) {
+func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
+	//
+	publicRoutes.GET("/ping", func(ctx *gin.Context) {
+		comm.OK(ctx, "pong", comm.CodeSuccess)
+	})
 }
 
 // only for testing purposes
