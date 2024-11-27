@@ -20,7 +20,7 @@ jobs:
           cd ./scripts
           sudo -E bash ./run_tests_lx.sh
   deploy:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04 #ubuntu-latest
         needs: test
         steps:
             - name: Get code
