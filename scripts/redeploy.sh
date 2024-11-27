@@ -37,7 +37,7 @@ function deploy() {
         echo "Server is not running, starting up..."
         docker compose down # just to be sure
         docker rmi -f $(docker images -aq) #TODO: check if images exist, if so dont reload them
-        ./load_images
+        ./load_images.sh
         docker compose up -d
 
         return $?
