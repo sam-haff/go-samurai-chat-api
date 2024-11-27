@@ -25,6 +25,7 @@ function deploy() {
         cd ../running
         docker compose down
         cp ../new/* ./
+        docker rmi -f $(docker images -aq)
         ./load_images.sh
         docker compose up -d
 
@@ -35,6 +36,7 @@ function deploy() {
     if [ -z `docker ps -q --no-trunc | grep $(docker compose ps -q 'api')` ]; then 
         echo "Server is not running, starting up..."
         docker compose down # just to be sure
+        docker rmi -f $(docker images -aq) #TODO: check if images exist, if so dont reload them
         ./load_images
         docker compose up -d
 
