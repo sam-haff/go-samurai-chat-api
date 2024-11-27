@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN go build ./cmd
+RUN go build -o go-chat-app-api ./cmd
 
 EXPOSE 8080
 
