@@ -32,7 +32,7 @@ function deploy() {
     fi
 
     cd ../running
-    if [ -z `docker ps -q --no-trunc | grep $(docker-compose ps -q 'api')` ]; then 
+    if [ -z `docker ps -q --no-trunc | grep $(docker compose ps -q 'api')` ]; then 
         echo "Server is not running, starting up..."
         docker compose down # just to be sure
         ./load_images
