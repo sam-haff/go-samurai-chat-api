@@ -1,5 +1,5 @@
 #/bin/bash
-#interactive
+# Script for transfering the build to the server, interactive.
 echo "do secure copy to the server..."
 echo "enter server addr"
 read server_addr

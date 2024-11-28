@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Make .env file from CI/CD secrets.
+
 if [[ -z "$FIREBASE_CREDS_FILE" || -z "$MONGODB_CONNECT_URL" ]]; then
   echo "Error: env vars are not set"
   exit 1

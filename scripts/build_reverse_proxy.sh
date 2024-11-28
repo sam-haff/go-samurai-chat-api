@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Build preconfigured nginx reverse proxy image 
+# and export it to the tar for secure transfer.
+
 if [ ! -d "../images" ]; then
  mkdir ../images 
 fi

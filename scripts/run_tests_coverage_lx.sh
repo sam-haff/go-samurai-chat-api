@@ -1,3 +1,9 @@
+#!/bin/bash
+
+# Script for generating Go test coverage html.
+# Starts local MongDB instance(with 1 replica), 
+# runs coverage and generates html from results.
+
 cd ../test_mongodb
 
 docker compose up --detach --wait

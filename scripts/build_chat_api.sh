@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Build the API server image and copy necessary utility files
+# to faciliate straightforward deployment update on the server
+# side and export it to the the tar for secure transfer.
+
 if [ ! -d "../images" ]; then
  mkdir ../images 
 fi
