@@ -28,7 +28,6 @@ jobs:
             - name: Build and transfer
               env:
                 SERVER_ADDR: ${{ secrets.SERVER_ADDR }}
-                SSH_KEY_PWD: ${{ secrets.SSH_KEY_PWD }}
                 SERVER_BUILD_NUMBER: ${{ github.run_number }}
                 MONGODB_CONNECT_URL: ${{ secrets.MONGODB_CONNECT_URL }}
                 FIREBASE_CREDS_FILE: ${{ secrets.FIREBASE_CREDS_FILE }}
