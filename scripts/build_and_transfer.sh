@@ -22,7 +22,9 @@
 # - Server user <uploaduser> created as described in server_setup_readme.txt
 # - SSH key <ssh-key.pem> for the <uploaduser>, you get it from your
 # server's /uploadroot/builds_upload/.ssh/id_rsa
-
+# - SSl cert files(fullchain.pem, privkey.pem) 
+# for your domain in <proj_root>/nginx/certs directory. You can get them from
+# LetsEncrypt ACME or from any other SSL certificates provider.
 
 
 ./build.sh
