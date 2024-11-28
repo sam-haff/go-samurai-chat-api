@@ -5,18 +5,12 @@ import (
 	"go-chat-app-api/internal/database"
 	"go-chat-app-api/internal/server"
 	"log"
-	"net/mail"
 	"os"
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
 )
-
-func emailIsvalid(email string) bool {
-	_, err := mail.ParseAddress(email)
-	return err == nil
-}
 
 func main() {
 	godotenv.Load()

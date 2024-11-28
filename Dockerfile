@@ -2,7 +2,10 @@ FROM golang:alpine
 
 WORKDIR /app
 
-COPY . .
+COPY internal ./
+COPY cmd ./
+COPY firebase-adminsdk-config.json ./
+COPY .env ./
 
 RUN go build -o go-chat-app-api ./cmd
 
