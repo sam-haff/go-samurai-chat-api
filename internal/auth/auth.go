@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"log"
 
 	firebase "firebase.google.com/go/v4"
 	fbauth "firebase.google.com/go/v4/auth"
@@ -19,7 +20,10 @@ type FbAuth struct {
 }
 
 func NewAuth(fbApp *firebase.App) Auth {
-	fbAuth, _ := fbApp.Auth(context.TODO())
+	fbAuth, err := fbApp.Auth(context.TODO())
+	if err != nil {
+		log.Fatalf("Failed to create Firebase Auth: %s", err.Error())
+	}
 	return FbAuth{fbAuth}
 }
 
