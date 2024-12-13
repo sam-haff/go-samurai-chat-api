@@ -14,7 +14,7 @@
 # exactly the sought value.
 
 if [[ -z "$FIREBASE_CREDS_FILE" || -z "$MONGODB_CONNECT_URL" ]]; then
-  echo "Error: env vars are not set"
+  echo "Error: env vars are not set(make_env_file)"
   exit 1
 fi
 

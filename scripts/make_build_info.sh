@@ -6,7 +6,7 @@
 # which should contain incremental build version.
 
 if [[ -z "$SERVER_BUILD_NUMBER" ]] ; then
-    echo "Error: Env vars not set"
+    echo "Error: Env vars not set(make_build_info)"
     exit 1
 fi
 

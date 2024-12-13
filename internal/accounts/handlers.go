@@ -63,6 +63,7 @@ type RegisterParams struct {
 }
 
 func handleRegister(ctx *gin.Context) {
+	//TODO: add middleware to check that Firebase Auth record exist
 	params := RegisterParams{}
 
 	if err := ctx.ShouldBind(&params); err != nil {
@@ -226,6 +227,7 @@ func handleRegisterToken(ctx *gin.Context) {
 	if userData.Tokens == nil {
 		userData.Tokens = make(map[string]string)
 	}
+	//TODO: check on current keys count so that the number is not too big(<=32 for example)
 	userData.Tokens[params.DeviceName] = params.Token
 
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "tokens", Value: userData.Tokens}}}}

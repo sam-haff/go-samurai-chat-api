@@ -14,6 +14,25 @@ import (
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
 	authRoutes.POST("/addmessage", accounts.CompleteRegisteredMiddleware, handleAddMessage)
 	authRoutes.POST("/chat", accounts.CompleteRegisteredMiddleware, handleGetChat)
+	authRoutes.GET("/chats", accounts.CompleteRegisteredMiddleware, handleGetChats)
+}
+
+func handleGetChats(ctx *gin.Context) {
+	userId := ctx.MustGet(auth.CtxVarUserId).(string)
+	if len(userId) == 0 {
+		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
+		return
+	}
+
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+
+	chats := make([]string, 0)
+	if status := DBGetChatsUtil(ctx, mongoInst, userId, &chats); status != UtilStatusOk {
+		comm.AbortBadRequest(ctx, "Failed to get chats", comm.CodeInvalidArgs)
+		return
+	}
+
+	comm.GenericOKJSON(ctx, chats)
 }
 
 const (
@@ -117,6 +136,10 @@ func handleGetChat(ctx *gin.Context) {
 	if res == UtilStatusCantParse {
 		comm.AbortBadRequest(ctx, "Couldnt parse data from db", comm.CodeInvalidArgs)
 		return
+	}
+
+	if messages == nil {
+		messages = make([]MessageData, 0)
 	}
 
 	comm.GenericOKJSON(ctx, messages)

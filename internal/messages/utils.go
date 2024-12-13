@@ -24,6 +24,29 @@ const (
 	UtilStatusCantParse = UtilStatus(2)
 )
 
+func DBGetChatsUtil(ctx context.Context, mongoInst *database.MongoDBInstance, uid string, chats *[]string) UtilStatus {
+	messagesCollection := mongoInst.Collection(database.MessagesCollection)
+
+	// compound db index is needed?
+	filter := bson.D{
+		{
+			Key: "$or", Value: bson.A{
+				bson.D{{Key: "from", Value: uid}},
+				bson.D{{Key: "to", Value: uid}},
+			},
+		}}
+
+	data, err := messagesCollection.Distinct(ctx, "conv_id", filter)
+	for _, rawMsg := range data {
+		msg := rawMsg.(string)
+		(*chats) = append((*chats), msg)
+	}
+	if err != nil {
+		return UtilStatusNotFound
+	}
+
+	return UtilStatusOk
+}
 func DBGetMessagesUtil(ctx context.Context, mongoInst *database.MongoDBInstance, uid1 string, uid2 string, limit int, asc bool, beforeTimeStamp int64, msgs *[]MessageData) UtilStatus {
 	messagesCollection := mongoInst.Collection(database.MessagesCollection)
 
