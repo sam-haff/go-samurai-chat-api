@@ -20,6 +20,7 @@ func main() {
 		log.Fatal("Service account is required to be set through env var file path to creds file")
 	}
 
+	log.Print(credsFileName + "\n")
 	dat, err := os.ReadFile(credsFileName)
 	if err != nil {
 		log.Fatal("Failed to load service account file")
