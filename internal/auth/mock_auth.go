@@ -20,6 +20,7 @@ func (v *MockFbAuth) VerifyToken(ctx context.Context, token string) (*fbauth.Tok
 	if t == nil {
 		return nil, args.Error(1)
 	}
+
 	return args.Get(0).(*fbauth.Token), args.Error(1)
 }
 func (v *MockFbAuth) CreateUser(ctx context.Context, user *fbauth.UserToCreate) (*fbauth.UserRecord, error) {
