@@ -36,64 +36,6 @@ func getRoutes(mockAuth *auth.MockFbAuth, mongoInst *database.MongoDBInstance) *
 
 	return routes
 }
-func Test_handeGetUid(t *testing.T) {
-	assert := assert.New(t)
-
-	accs := getPckgTestingAccountsInfo()
-
-	mongoInst, _ := database.NewTestMongoDBInstance()
-	authMock := setupPckgAuthMock(true)
-	routes := getRoutes(authMock, mongoInst)
-
-	tests := []struct {
-		name                   string
-		authToken              string
-		username               string
-		expectedUid            string
-		expectedStatus         int
-		expectedCommStatusCode int
-	}{
-		{"For existing user", accs[0].Token, accs[0].Username, accs[0].Id, http.StatusOK, comm.CodeSuccess},
-		{"For non-existing user", accs[0].Token, "kkk", "", http.StatusBadRequest, comm.CodeUserNotRegistered},
-		{"Unauthorized", "bpmbpm", accs[0].Username, accs[0].Id, http.StatusUnauthorized, comm.CodeNotAuthenticated},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			reqUrl := fmt.Sprintf("/uid/%s", test.username)
-			req, _ := http.NewRequest("GET", reqUrl, nil)
-			req.Header.Set("Authorization", "Bearer "+test.authToken)
-			rec := httptest.NewRecorder()
-
-			routes.ServeHTTP(rec, req)
-
-			resp := rec.Result()
-			assert.Equal(test.expectedStatus, resp.StatusCode)
-
-			success := resp.StatusCode == 200
-
-			respBody, _ := io.ReadAll(resp.Body)
-
-			if success {
-				respJson := comm.ApiResponseWith[UsernameData]{}
-
-				err := json.Unmarshal(respBody, &respJson)
-				assert.Nil(err, "invalid response format")
-				assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "invalid response comm status code")
-
-				username := respJson.Result.Obj
-				assert.Equal(test.expectedUid, username.UserID, "wrong uid")
-				assert.Equal(test.username, username.Id)
-			} else {
-				respJson := comm.ApiResponsePlain{}
-
-				err := json.Unmarshal(respBody, &respJson)
-				assert.Nil(err, "invalid response format")
-				assert.Equal(test.expectedCommStatusCode, respJson.Result.Code)
-			}
-		})
-	}
-}
 
 func Test_handleGetUser(t *testing.T) {
 	assert := assert.New(t)
@@ -232,9 +174,8 @@ func Test_handleRegister(t *testing.T) {
 		if respJSON.Result.Code == comm.CodeSuccess {
 			ctx := context.Background()
 			// see if database has correct records
-			// TODO: use DBUserRegisterCompleted ??
-			assert.Equal(UtilErrorOk, DBGetUserDataUtil(ctx, mongoInst, test.mockUid, nil), "no db record")
-			assert.Equal(UtilErrorOk, DBGetUsernameDataUtil(ctx, mongoInst, test.username, nil), "no db record")
+			u := UserData{}
+			assert.True(DBUserRegisterCompletedUtil(ctx, mongoInst, test.mockUid, &u), "invalid registration")
 		}
 	}
 }

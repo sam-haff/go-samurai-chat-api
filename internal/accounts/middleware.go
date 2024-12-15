@@ -17,9 +17,8 @@ func CompleteRegisteredMiddleware(ctx *gin.Context) {
 	userId := ctx.MustGet(auth.CtxVarUserId).(string)
 
 	userData := UserData{}
-	usernameData := UsernameData{}
 
-	if !DBUserRegisterCompletedUtil(ctx, mongoInst, userId, &userData, &usernameData) {
+	if !DBUserRegisterCompletedUtil(ctx, mongoInst, userId, &userData) {
 		comm.AbortUnauthorized(ctx, "User register is incomplete, action is not authorized", comm.CodeUserNotRegistered)
 		return
 	}

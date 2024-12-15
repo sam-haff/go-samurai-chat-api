@@ -18,6 +18,7 @@ func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup
 }
 
 func handleGetChats(ctx *gin.Context) {
+	// TODO: should be fast with indexed conv_id but mb use caching?
 	userId := ctx.MustGet(auth.CtxVarUserId).(string)
 	if len(userId) == 0 {
 		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)

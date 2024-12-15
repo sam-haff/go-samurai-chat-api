@@ -18,10 +18,10 @@ func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup
 	authRoutes.POST("/completeregister", handleCompleteRegister)
 	authRoutes.POST("/registertoken", CompleteRegisteredMiddleware, handleRegisterToken)
 	authRoutes.POST("/updateavatar", CompleteRegisteredMiddleware, handleUpdateAvatar)
+	authRoutes.POST("/addcontact", CompleteRegisteredMiddleware, handleAddContact)
 
 	authRoutes.GET("/users/id/:uid", CompleteRegisteredMiddleware, handleGetUser)
-	authRoutes.GET("/uid/:username", CompleteRegisteredMiddleware, handleGetUid)
-
+	authRoutes.GET("/users/username/:username", CompleteRegisteredMiddleware, handleGetUserByUsername)
 }
 
 func CreateDBUserRecords(ctx *gin.Context, userData UserData) bool {
@@ -44,15 +44,57 @@ func handleGetUser(ctx *gin.Context) {
 
 	comm.GenericOKJSON(ctx, userData)
 }
-func handleGetUid(ctx *gin.Context) {
+func handleGetUserByUsername(ctx *gin.Context) {
 	targetUsername := ctx.Param("username")
 
-	usernameData := UsernameData{}
-	if !DBGetUsernameData(ctx, targetUsername, &usernameData) {
+	userData := UserData{}
+	if !DBGetUserDataByUsername(ctx, targetUsername, &userData) {
 		return
 	}
 
-	comm.GenericOKJSON(ctx, usernameData)
+	comm.GenericOKJSON(ctx, userData)
+}
+
+type AddContactParams struct {
+	// TODO: add binding rules
+	Username string `json:"username"`
+}
+
+func handleAddContact(ctx *gin.Context) {
+	params := AddContactParams{}
+	if err := ctx.ShouldBind(&params); err != nil {
+		comm.AbortFailedBinding(ctx, err)
+
+		return
+	}
+
+	user := ctx.MustGet(CtxVarUserData).(UserData)
+
+	contact := UserData{}
+	if !DBGetUserDataByUsername(ctx, params.Username, &contact) {
+		return
+	}
+
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	res := mongoInst.Collection(database.UsersCollection).FindOneAndUpdate(
+		ctx,
+		bson.M{"_id": user.Id},
+		bson.M{"$set": bson.M{"contacts." + contact.Id: true}},
+	)
+	old := UserData{}
+	err := res.Decode(&old)
+	if err != nil {
+		comm.AbortBadRequest(ctx, "Database failure", comm.CodeInvalidArgs)
+		return
+	}
+
+	_, ok := old.Contacts[contact.Id]
+	if ok {
+		comm.AbortBadRequest(ctx, "Contact is already in the list", comm.CodeInvalidArgs)
+		return
+	}
+
+	comm.GenericOKJSON(ctx, contact)
 }
 
 // TODO: remove trailing spaces and check for correct username format
@@ -74,10 +116,10 @@ func handleRegister(ctx *gin.Context) {
 
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 
-	usernamesCollection := mongoInst.Collection(database.UsernamesCollection)
-
-	filter := bson.D{{Key: "_id", Value: params.Username}}
-	usernameRes := usernamesCollection.FindOne(ctx, filter)
+	// check if already registered
+	usersCollection := mongoInst.Collection(database.UsersCollection)
+	filter := bson.D{{Key: "username", Value: params.Username}}
+	usernameRes := usersCollection.FindOne(ctx, filter)
 	if usernameRes.Err() == nil {
 		comm.AbortBadRequest(ctx, "User already exists", comm.CodeUsernameTaken)
 		return
@@ -98,7 +140,7 @@ func handleRegister(ctx *gin.Context) {
 		return
 	}
 
-	if !CreateDBUserRecords(ctx, UserData{Id: userRecord.UID, Username: params.Username, Email: params.Email}) {
+	if !CreateDBUserRecords(ctx, NewUserData(userRecord.UID, params.Email, params.Username, "")) {
 		return
 	}
 
@@ -174,7 +216,7 @@ func handleCompleteRegister(ctx *gin.Context) {
 		return
 	}
 
-	if !CreateDBUserRecords(ctx, UserData{Id: authToken.UID, Username: params.Username, Email: email}) {
+	if !CreateDBUserRecords(ctx, NewUserData(authToken.UID, email, params.Username, "")) {
 		//all responces are handled inside func
 		return
 	}
@@ -229,7 +271,7 @@ func handleRegisterToken(ctx *gin.Context) {
 	}
 	//TODO: check on current keys count so that the number is not too big(<=32 for example)
 	userData.Tokens[params.DeviceName] = params.Token
-
+	//TODO: bad
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "tokens", Value: userData.Tokens}}}}
 	_, err = usersCollection.UpdateOne(ctx, filter, update)
 	if err != nil {
