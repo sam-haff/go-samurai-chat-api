@@ -57,7 +57,7 @@ func handleGetUserByUsername(ctx *gin.Context) {
 
 type AddContactParams struct {
 	// TODO: add binding rules
-	Username string `json:"username"`
+	Username string `json:"username" binding:"min=4,alphanum,required"`
 }
 
 func handleAddContact(ctx *gin.Context) {
