@@ -107,15 +107,16 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 	)
 
 	targetClients := hub.getClients(msg.ToId)
-	if targetClients == nil {
-		targetClients = make([]*WsClient, 1)
-		targetClients[0] = e.origin
-	} else {
-		// send message back to the sender(to update all of his clients to account for a sent message)
-		targetClients = append(targetClients, e.origin)
+	senderClients := hub.getClients(e.origin.uid)
+	clients := make([]*WsClient, 0, len(targetClients)+len(senderClients))
+	if targetClients != nil {
+		clients = append(clients, targetClients...)
+	}
+	if senderClients != nil {
+		clients = append(clients, senderClients...)
 	}
 
-	for _, cl := range targetClients {
+	for _, cl := range clients {
 		cl.responses <- commNewWsEventJSON(
 			WsEvent_NewMessageEvent,
 			e.event.Id,
