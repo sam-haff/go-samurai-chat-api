@@ -1,6 +1,9 @@
 package server
 
 import (
+	"context"
+	"log"
+
 	firebase "firebase.google.com/go/v4"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -15,6 +18,10 @@ import (
 
 func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) error {
 	fbAuth := auth.NewAuth(fbApp)
+	fbStorage, err := fbApp.Storage(context.TODO())
+	if err != nil {
+		log.Fatal("Failed to init fb storage. " + err.Error())
+	}
 	wsHub := websocket.NewWsHub(fbAuth, mongoInst)
 
 	go wsHub.Run()
@@ -26,7 +33,7 @@ func Run(addr string, fbApp *firebase.App, mongoInst *database.MongoDBInstance) 
 	corsConfig.AllowAllOrigins = true
 	routes.Use(cors.New(corsConfig)) // TODO: change
 
-	routes.Use(middleware.InjectFBApp(fbApp), auth.InjectAuth(fbAuth), database.InjectDB(mongoInst))
+	routes.Use(middleware.InjectFBApp(fbApp), auth.InjectAuth(fbAuth), accounts.InjectStorage(fbStorage), database.InjectDB(mongoInst))
 	authRoutes := routes.Group("/", auth.AuthMiddleware)
 	publicRoutes := routes.Group("/")
 	wsRoutes := routes.Group("/", websocket.InjectWsHub(&wsHub))

@@ -5,12 +5,21 @@ import (
 	"go-chat-app-api/internal/comm"
 	"go-chat-app-api/internal/database"
 
+	"firebase.google.com/go/v4/storage"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	CtxVarUserData = "user-userdata"
+	CtxVarUserData        = "user-userdata"
+	CtxVarFirebaseStorage = "fb-storage"
 )
+
+// TODO: move to server/middleware?
+func InjectStorage(fbStorage *storage.Client) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Set(CtxVarFirebaseStorage, fbStorage)
+	}
+}
 
 func CompleteRegisteredMiddleware(ctx *gin.Context) {
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)

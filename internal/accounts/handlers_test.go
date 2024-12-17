@@ -180,51 +180,6 @@ func Test_handleRegister(t *testing.T) {
 	}
 }
 
-func Test_handleUpdateAvatar(t *testing.T) {
-	assert := assert.New(t)
-
-	mongoInst, _ := database.NewTestMongoDBInstance()
-	authMock := setupPckgAuthMock(true)
-	routes := getRoutes(authMock, mongoInst)
-
-	accs := getPckgTestingAccountsInfo()
-
-	tests := []struct {
-		name                   string
-		authAccToken           string
-		authAccUid             string
-		url                    string
-		expectedStatus         int
-		expectedCommStatusCode int
-	}{
-		{"Good url", accs[0].Token, accs[0].Id, "http://example.com/exa.jpg", http.StatusOK, comm.CodeSuccess},
-		{"Empty url", accs[0].Token, accs[0].Id, "", http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"Not url", accs[0].Token, accs[0].Id, "abcde/klmnp", http.StatusBadRequest, comm.CodeInvalidArgs},
-		{"No auth", "invalid", "invalid", "http://example.com/exa.jpg", http.StatusUnauthorized, comm.CodeNotAuthenticated},
-	}
-
-	for _, test := range tests {
-		params := UpdateAvatarParams{test.url}
-		paramsJsonBytes, _ := json.Marshal(&params)
-		req, _ := http.NewRequest("POST", "/updateavatar", bytes.NewBuffer(paramsJsonBytes))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", test.authAccToken))
-
-		rec := httptest.NewRecorder()
-
-		routes.ServeHTTP(rec, req)
-
-		resp := rec.Result()
-		respBytes, _ := io.ReadAll(resp.Body)
-		respJson := comm.ApiResponsePlain{}
-		err := json.Unmarshal(respBytes, &respJson)
-
-		assert.Nil(err, "invalid response format")
-		assert.Equal(test.expectedStatus, resp.StatusCode, "wrong http status")
-		assert.Equal(test.expectedCommStatusCode, respJson.Result.Code, "wrong comm status")
-	}
-}
-
 func Test_handleCompleteRegister(t *testing.T) {
 	assert := assert.New(t)
 

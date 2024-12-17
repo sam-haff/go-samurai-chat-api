@@ -22,21 +22,31 @@ func main() {
 
 	mongodbConnectUrl, ok := os.LookupEnv("MONGODB_CONNECT_URL")
 	if !ok {
-		log.Fatal("Mongodb connection url with creds should be set thorugh env file")
+		log.Fatal("Mongodb connection url with creds should be set through env file")
+	}
+
+	storageBucket, ok := os.LookupEnv("FIREBASE_STORAGE_BUCKET")
+	if !ok {
+		log.Fatal("Firebase storage bucket name should be set through env file")
 	}
 
 	opt := option.WithCredentialsFile(credsFileName)
-	fbApp, err := firebase.NewApp(context.Background(), nil, opt)
+	fbApp, err := firebase.NewApp(
+		context.Background(),
+		&firebase.Config{
+			StorageBucket: storageBucket,
+		},
+		opt)
 	if err != nil {
-		log.Fatalf("Failed to create Firebase app: %s", err.Error())
+		log.Fatal("Failed to create Firebase app: " + err.Error())
 	}
 
 	mongoInst, err := database.NewMongoDBInstance(mongodbConnectUrl)
 	if err != nil {
-		log.Fatalf("Failed to connect to mongo db: %s", err.Error())
+		log.Fatal("Failed to connect to mongo db: " + err.Error())
 	}
 
 	if err := server.Run(":8080", fbApp, mongoInst); err != nil {
-		log.Fatalf("Failure at running a server: %s", err.Error())
+		log.Fatal("Failure at running a server: " + err.Error())
 	}
 }

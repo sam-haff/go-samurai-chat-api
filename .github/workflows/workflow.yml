@@ -31,6 +31,7 @@ jobs:
                 SERVER_BUILD_NUMBER: ${{ github.run_number }}
                 MONGODB_CONNECT_URL: ${{ secrets.MONGODB_CONNECT_URL }}
                 FIREBASE_CREDS_FILE: ${{ secrets.FIREBASE_CREDS_FILE }}
+                FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
               run: |
                 echo '${{ secrets.FIREBASE_CREDS_JSON }}' >> ${{ secrets.FIREBASE_CREDS_FILE }}
                 mkdir ./nginx/certs
