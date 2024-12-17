@@ -112,7 +112,7 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 	if targetClients != nil {
 		clients = append(clients, targetClients...)
 	}
-	if senderClients != nil {
+	if (msg.ToId != e.origin.uid) && (senderClients != nil) {
 		clients = append(clients, senderClients...)
 	}
 
