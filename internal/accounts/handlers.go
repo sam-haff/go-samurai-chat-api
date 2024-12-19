@@ -20,10 +20,11 @@ import (
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
 	publicRoutes.POST("/register", handleRegister)
 
-	authRoutes.POST("/completeregister", handleCompleteRegister)
+	authRoutes.POST("/register/complete", handleCompleteRegister)
 	authRoutes.POST("/registertoken", CompleteRegisteredMiddleware, handleRegisterToken)
-	authRoutes.POST("/updateavatarfile", CompleteRegisteredMiddleware, handleUpdateAvatarFile)
-	authRoutes.POST("/addcontact", CompleteRegisteredMiddleware, handleAddContact)
+	authRoutes.POST("/updateavatarfile", CompleteRegisteredMiddleware, handleUpdateAvatarFile) // TODO: rename path to /avatar
+	authRoutes.POST("/addcontact", CompleteRegisteredMiddleware, handleAddContact)             // TODO: use dynamic path parameter?
+	authRoutes.POST("/removecontact", CompleteRegisteredMiddleware, handleRemoveContact)
 
 	authRoutes.GET("/users/id/:uid", CompleteRegisteredMiddleware, handleGetUser)
 	authRoutes.GET("/users/username/:username", CompleteRegisteredMiddleware, handleGetUserByUsername)
@@ -60,13 +61,13 @@ func handleGetUserByUsername(ctx *gin.Context) {
 	comm.GenericOKJSON(ctx, userData)
 }
 
-type AddContactParams struct {
+type ContactParams struct {
 	// TODO: add binding rules
 	Username string `json:"username" binding:"min=4,alphanum,required"`
 }
 
 func handleAddContact(ctx *gin.Context) {
-	params := AddContactParams{}
+	params := ContactParams{}
 	if err := ctx.ShouldBind(&params); err != nil {
 		comm.AbortFailedBinding(ctx, err)
 
@@ -96,6 +97,43 @@ func handleAddContact(ctx *gin.Context) {
 	_, ok := old.Contacts[contact.Id]
 	if ok {
 		comm.AbortBadRequest(ctx, "Contact is already in the list", comm.CodeInvalidArgs)
+		return
+	}
+
+	comm.GenericOKJSON(ctx, contact)
+}
+
+func handleRemoveContact(ctx *gin.Context) {
+	params := ContactParams{}
+	if err := ctx.ShouldBind(&params); err != nil {
+		comm.AbortFailedBinding(ctx, err)
+
+		return
+	}
+
+	user := ctx.MustGet(CtxVarUserData).(UserData)
+
+	contact := UserData{}
+	if !DBGetUserDataByUsername(ctx, params.Username, &contact) {
+		return
+	}
+
+	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
+	res := mongoInst.Collection(database.UsersCollection).FindOneAndUpdate(
+		ctx,
+		bson.M{"_id": user.Id},
+		bson.M{"$unset": bson.M{"contacts." + contact.Id: true}},
+	)
+	old := UserData{}
+	err := res.Decode(&old)
+	if err != nil {
+		comm.AbortBadRequest(ctx, "Database failure", comm.CodeInvalidArgs)
+		return
+	}
+
+	_, ok := old.Contacts[contact.Id]
+	if !ok {
+		comm.AbortBadRequest(ctx, "Contact is not in the list", comm.CodeInvalidArgs)
 		return
 	}
 
