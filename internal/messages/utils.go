@@ -79,16 +79,14 @@ func DBGetMessagesUtil(ctx context.Context, mongoInst *database.MongoDBInstance,
 
 	return UtilStatusOk
 }
-func NewMessageData(from accounts.UserData, toUserId string, msg string) MessageData {
-	compKey := composeChatKey(from.Id, toUserId)
+func NewMessageData(fromUserId string, toUserId string, msg string) MessageData {
+	compKey := composeChatKey(fromUserId, toUserId)
 	return MessageData{
 		MsgId:          primitive.NewObjectID(),
 		ConversationID: compKey,
 		Text:           msg,
-		FromId:         from.Id,
+		FromId:         fromUserId,
 		ToId:           toUserId,
-		FromUsername:   from.Username,
-		ImgUrl:         from.Img_url,
 		CreatedAt:      time.Now().UnixMilli(),
 	}
 }
@@ -112,7 +110,7 @@ func composeChatKey(uid1 string, uid2 string) string {
 	return compIndex
 }
 
-func newFcmMessage(token string, msg MessageData, needsNotification bool, needsMsg bool) *messaging.Message {
+func newFcmMessage(fromUsername string, token string, msg MessageData, needsNotification bool, needsMsg bool) *messaging.Message {
 	fcmMsg := &messaging.Message{}
 
 	isNotification := 0
@@ -135,9 +133,7 @@ func newFcmMessage(token string, msg MessageData, needsNotification bool, needsM
 	if needsMsg {
 		fcmMsgData["_from"] = msg.FromId
 		fcmMsgData["to"] = msg.ToId
-		fcmMsgData["username"] = msg.FromUsername
 		fcmMsgData["msg"] = msg.Text
-		fcmMsgData["img_url"] = msg.ImgUrl
 		fcmMsgData["created_at"] = strconv.FormatInt(msg.CreatedAt, 10)
 	}
 
@@ -145,7 +141,7 @@ func newFcmMessage(token string, msg MessageData, needsNotification bool, needsM
 	fcmMsg.Data = fcmMsgData
 	if needsNotification {
 		fcmMsg.Notification = &messaging.Notification{
-			Title: msg.FromUsername,
+			Title: fromUsername,
 			Body:  msg.Text,
 		}
 		fcmMsg.Android = &messaging.AndroidConfig{
@@ -168,9 +164,10 @@ func newFcmMessage(token string, msg MessageData, needsNotification bool, needsM
 
 func fcmSendNewMessage(ctx *gin.Context, tokens map[string]string, msg MessageData, needsNotification bool, needsMsg bool) bool {
 	fcmClient, _ := ctx.MustGet(CtxVarFcm).(FcmClient)
+	user, _ := ctx.MustGet(accounts.CtxVarUserData).(accounts.UserData)
 
 	for _, token := range tokens {
-		fcmMsg := newFcmMessage(token, msg, needsNotification, needsMsg)
+		fcmMsg := newFcmMessage(user.Username, token, msg, needsNotification, needsMsg)
 
 		_, err := fcmClient.Send(ctx, fcmMsg)
 

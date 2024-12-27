@@ -63,13 +63,11 @@ func Test_handleAddMessage(t *testing.T) {
 	msg1 := MessageData{
 		FromId:         accs[0].Id,
 		ToId:           accs[1].Id,
-		FromUsername:   accs[0].Username,
 		Text:           "Message content 1",
 		ConversationID: compKey}
 	msg2 := MessageData{
 		FromId:         accs[1].Id,
 		ToId:           accs[0].Id,
-		FromUsername:   accs[1].Username,
 		Text:           "Message content 2",
 		ConversationID: compKey}
 	//tests
@@ -129,7 +127,6 @@ func Test_handleAddMessage(t *testing.T) {
 					assert.Equal(msg.FromId, dbMsgs[i].FromId, "wrong id of sender")
 					assert.Equal(msg.ToId, dbMsgs[i].ToId, "wrong id of receiver")
 					assert.Equal(msg.Text, dbMsgs[i].Text, "wrong message text")
-					assert.Equal(msg.FromUsername, dbMsgs[i].FromUsername, "wrong username of sender")
 					assert.Equal(msg.ConversationID, dbMsgs[i].ConversationID, "wrong message conversation id")
 				}
 			}
@@ -155,9 +152,9 @@ func Test_handleGetChat(t *testing.T) {
 	acc1 := accs[0]
 	acc2 := accs[2]
 	msgsToAdd := []MessageData{
-		NewMessageData(acc1.UserData, acc2.Id, "Hello"),
-		NewMessageData(acc2.UserData, acc1.Id, "Hi"),
-		NewMessageData(acc1.UserData, acc2.Id, "How are you?"),
+		NewMessageData(acc1.UserData.Id, acc2.Id, "Hello"),
+		NewMessageData(acc2.UserData.Id, acc1.Id, "Hi"),
+		NewMessageData(acc1.UserData.Id, acc2.Id, "How are you?"),
 	}
 	for _, msg := range msgsToAdd {
 		DBAddMessageUtil(ctx, mongoInst, msg)
@@ -207,7 +204,6 @@ func Test_handleGetChat(t *testing.T) {
 					assert.Equal(msg.FromId, respJson.Result.Obj[i].FromId)
 					assert.Equal(msg.ToId, respJson.Result.Obj[i].ToId)
 					assert.Equal(msg.Text, respJson.Result.Obj[i].Text)
-					assert.Equal(msg.FromUsername, respJson.Result.Obj[i].FromUsername)
 					assert.Equal(msg.ConversationID, respJson.Result.Obj[i].ConversationID)
 				}
 			}

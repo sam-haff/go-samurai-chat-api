@@ -55,6 +55,7 @@ func DBGetUserDataByUsernameUtil(ctx context.Context, mongoInst *database.MongoD
 	return DBFindOneQueryUtil(ctx, mongoInst, usersCollection, filter, data)
 }
 func DBGetUserDataUtil(ctx context.Context, mongoInst *database.MongoDBInstance, id string, data *UserData) UtilStatus {
+	// TODO: use cache
 	usersCollection := mongoInst.Collection(database.UsersCollection)
 
 	filter := bson.D{{Key: "_id", Value: id}}

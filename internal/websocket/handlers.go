@@ -48,6 +48,13 @@ func handleWs(ctx *gin.Context) {
 		return
 	}
 
+	if len(hub.getClients(authToken.UID)) > HUB_MAX_CLIENTS_PER_USER {
+		comm.AbortBadRequest(ctx, "Reached max clients per user", comm.CodeInvalidArgs)
+		return
+	}
+
+	//if accounts.DBUserRegisterCompletedUtil()
+
 	clientServeWs(hub, ctx.Writer, ctx.Request, params.Token, authToken.UID) // TODO: rename func
 }
 
@@ -58,7 +65,8 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 
 	if err != nil {
 		e.origin.responses <- commNewWsEvent(
-			WsEvent_SendMessageResponse,
+			WsEvent_SendMessageRequest,
+			true,
 			e.event.Id,
 			*comm.NewApiResponse("Ill formed request", comm.CodeInvalidArgs),
 		)
@@ -66,33 +74,25 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 		return
 	}
 
-	fromUserData := accounts.UserData{}
-	if status := accounts.DBGetUserDataUtil(context.TODO(), hub.mongoDBInst, e.origin.uid, &fromUserData); status != accounts.UtilErrorOk {
-		e.origin.responses <- commNewWsEvent(
-			WsEvent_SendMessageResponse,
-			e.event.Id,
-			*comm.NewApiResponse("Sender is not registered properly", comm.CodeInvalidArgs),
-		)
+	fromUid := e.origin.uid
 
-		return
-	}
 	toUserData := accounts.UserData{}
 	if status := accounts.DBGetUserDataUtil(context.TODO(), hub.mongoDBInst, params.ToId, &toUserData); status != accounts.UtilErrorOk {
 		e.origin.responses <- commNewWsEvent(
-			WsEvent_SendMessageResponse,
+			WsEvent_SendMessageRequest,
+			true,
 			e.event.Id,
 			*comm.NewApiResponse("Contact is not registered properly", comm.CodeInvalidArgs),
 		)
-
 		return
 	}
 
-	msg := messages.NewMessageData(fromUserData, params.ToId, params.Msg)
-
+	msg := messages.NewMessageData(fromUid, params.ToId, params.Msg)
 	err = messages.DBAddMessageUtil(context.TODO(), hub.mongoDBInst, msg)
 	if err != nil {
 		e.origin.responses <- commNewWsEvent(
-			WsEvent_SendMessageResponse,
+			WsEvent_SendMessageRequest,
+			true,
 			e.event.Id,
 			*comm.NewApiResponse("DB error", comm.CodeInvalidArgs),
 		)
@@ -101,7 +101,8 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 	}
 
 	e.origin.responses <- commNewWsEventJSON(
-		WsEvent_SendMessageResponse,
+		WsEvent_SendMessageRequest,
+		true,
 		e.event.Id,
 		*comm.NewApiResponseWithJson("Success", comm.CodeSuccess, msg),
 	)
@@ -119,8 +120,116 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 	for _, cl := range clients {
 		cl.responses <- commNewWsEventJSON(
 			WsEvent_NewMessageEvent,
+			false,
 			e.event.Id,
 			*comm.NewApiResponseWithJson("New message", comm.CodeSuccess, msg),
 		)
 	}
+}
+
+type CheckOnlineParams struct {
+	Uid string `json:"uid" binding:"min=1,max=1024,required"`
+}
+
+func handleSubscribeOnlineStatus(hub *WsHub, e *WsServerEvent) {
+	params := CheckOnlineParams{}
+	b, _ := e.event.Obj.MarshalJSON()
+	err := json.Unmarshal(b, &params)
+	if err != nil {
+		e.origin.responses <- commNewWsEvent(
+			WsEvent_OnlineStatusSubscribeRequest,
+			true,
+			e.event.Id,
+			*comm.NewApiResponse("Ill formed request", comm.CodeInvalidArgs),
+		)
+		return
+	}
+	toUserData := accounts.UserData{}
+	if status := accounts.DBGetUserDataUtil(context.TODO(), hub.mongoDBInst, params.Uid, &toUserData); status != accounts.UtilErrorOk {
+		e.origin.responses <- commNewWsEvent(
+			WsEvent_OnlineStatusSubscribeRequest,
+			true,
+			e.event.Id,
+			*comm.NewApiResponse("Contact is not registered properly", comm.CodeInvalidArgs),
+		)
+		return
+	}
+
+	isOnline := hub.isUserOnline(params.Uid)
+	hub.notifyClients(e.origin.uid, NewOnlineStatusChangeEvent(params.Uid, isOnline))
+
+	hub.statusSubscribers.Upsert(params.Uid, nil, func(exist bool, valueInMap, newValue map[*WsClient]bool) map[*WsClient]bool {
+		if !exist || valueInMap == nil {
+			m := make(map[*WsClient]bool)
+			m[e.origin] = true
+			return m
+		}
+		m := make(map[*WsClient]bool, len(valueInMap)) // clone for safe get
+		for k, v := range valueInMap {
+			m[k] = v
+		}
+		m[e.origin] = true
+		return m
+	})
+	e.origin.subscribedToLock.Lock()
+	if e.origin.subscribedTo == nil {
+		e.origin.responses <- commNewWsEvent(
+			WsEvent_OnlineStatusSubscribeRequest,
+			true,
+			e.event.Id,
+			*comm.NewApiResponse("Client state is invalid", comm.CodeInvalidArgs),
+		)
+		e.origin.subscribedToLock.Unlock()
+		return
+	}
+	e.origin.subscribedTo[params.Uid] = true
+	e.origin.subscribedToLock.Unlock()
+
+	e.origin.responses <- commNewWsEvent(
+		WsEvent_OnlineStatusSubscribeRequest,
+		true,
+		e.event.Id,
+		*comm.NewApiResponse("Subscribed", comm.CodeSuccess),
+	)
+}
+
+func handleCheckOnline(hub *WsHub, e *WsServerEvent) {
+	params := CheckOnlineParams{}
+	objBytes, _ := e.event.Obj.MarshalJSON() // TODO: check err
+	err := json.Unmarshal(objBytes, &params)
+
+	if err != nil {
+		e.origin.responses <- commNewWsEvent(
+			WsEvent_CheckOnlineRequest,
+			true,
+			e.event.Id,
+			*comm.NewApiResponse("Ill formed request", comm.CodeInvalidArgs),
+		)
+
+		return
+	}
+
+	toUserData := accounts.UserData{}
+	if status := accounts.DBGetUserDataUtil(context.TODO(), hub.mongoDBInst, params.Uid, &toUserData); status != accounts.UtilErrorOk {
+		e.origin.responses <- commNewWsEvent(
+			WsEvent_SendMessageRequest,
+			true,
+			e.event.Id,
+			*comm.NewApiResponse("Contact is not registered properly", comm.CodeInvalidArgs),
+		)
+
+		return
+	}
+
+	isOnline := hub.isUserOnline(params.Uid)
+	isOnlineRespObj := struct {
+		IsOnline bool `json:"is_online"`
+	}{isOnline}
+
+	e.origin.responses <- commNewWsEventJSON(
+		WsEvent_SendMessageRequest,
+		true,
+		e.event.Id,
+		*comm.NewApiResponseWithJson("Success", comm.CodeSuccess, isOnlineRespObj),
+	)
 }

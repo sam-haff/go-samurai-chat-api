@@ -3,20 +3,83 @@ package websocket
 import (
 	"encoding/json"
 	"fmt"
+	cmap "go-chat-app-api/internal/concurrent-map"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
+// websocket state(per connection)
 type WsClient struct {
-	uid       string
-	authToken string
-	responses chan WsEvent
+	uid              string
+	authToken        string
+	responses        chan WsEvent
+	subscribedTo     map[string]bool
+	subscribedToLock sync.Mutex // cmap.ConcurrentMap is very bad for iteration
 
 	conn *websocket.Conn
 	hub  *WsHub
+}
+
+// clears structures for tracking subscribtions on special events for the client
+func (c *WsClient) unsubsribeAll(hub *WsHub) {
+	uidsPerShard := make([][]string, cmap.SHARD_COUNT)
+
+	c.subscribedToLock.Lock()
+	uids := make([]string, len(c.subscribedTo))
+	i := 0
+	for k := range c.subscribedTo {
+		//exp
+		shardIdx := hub.statusSubscribers.GetShardIndex(k)
+		if uidsPerShard[shardIdx] == nil {
+			uidsPerShard[shardIdx] = make([]string, 0, 16)
+		}
+		uidsPerShard[shardIdx] = append(uidsPerShard[shardIdx], k)
+		//exp
+		uids[i] = k
+		i++
+	}
+	c.subscribedTo = nil
+	c.subscribedToLock.Unlock()
+
+	for shardIdx, uids := range uidsPerShard {
+		shard := hub.statusSubscribers.GetShardByIndex(uint(shardIdx))
+		shard.Lock()
+		for _, uid := range uids {
+			val, ok := shard.UnsafeGet(uid)
+			if !ok {
+				continue
+			}
+
+			res := make(map[*WsClient]bool, len(val))
+			for k, v := range val {
+				res[k] = v
+			}
+
+			shard.UnsafeSet(uid, res)
+		}
+		shard.Unlock()
+	}
+
+	/*
+		// lots of same locks here
+		for _, uid := range uids {
+			hub.statusSubscribers.Upsert(uid, nil, func(exist bool, valueInMap, newValue map[*WsClient]bool) map[*WsClient]bool {
+				if !exist || valueInMap == nil {
+					return nil
+				}
+				res := make(map[*WsClient]bool, len(valueInMap)) // clone for safe get
+				for k, v := range valueInMap {
+					if k != c {
+						res[k] = v
+					}
+				}
+				return valueInMap
+			})
+		}*/
 }
 
 const (
@@ -38,6 +101,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// read events/requests(WsEvent) from the client and send them(WsServerEvent) the hub events channel for further processing
 func (c *WsClient) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -68,6 +132,7 @@ func (c *WsClient) readPump() {
 	}
 }
 
+// send request responses and events from the <responses> channel to the client
 func (c *WsClient) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -87,14 +152,11 @@ func (c *WsClient) writePump() {
 			if err != nil {
 				return
 			}
-
 			eventBytes, err := json.Marshal(event)
 			if err != nil {
 				continue
 			}
-
 			w.Write(eventBytes)
-
 			if err := w.Close(); err != nil {
 				return
 			}
@@ -108,6 +170,8 @@ func (c *WsClient) writePump() {
 }
 
 // serveWs handles websocket requests from the peer.
+// upgrades the connection from http to websocket and
+// launches threads for handling bidirectional communication.
 func clientServeWs(hub *WsHub, w http.ResponseWriter, r *http.Request, token string, uid string) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -115,7 +179,7 @@ func clientServeWs(hub *WsHub, w http.ResponseWriter, r *http.Request, token str
 		return
 	}
 
-	client := &WsClient{hub: hub, conn: conn, authToken: token, uid: uid, responses: make(chan WsEvent, 256)} // TODO: save auth token???
+	client := &WsClient{hub: hub, conn: conn, authToken: token, uid: uid, responses: make(chan WsEvent, 32), subscribedTo: make(map[string]bool, 12)} // TODO: save auth token???
 	client.hub.register <- client
 
 	go client.writePump()

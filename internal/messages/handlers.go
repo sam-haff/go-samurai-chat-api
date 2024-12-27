@@ -74,7 +74,7 @@ func handleAddMessage(ctx *gin.Context) {
 		return
 	}
 
-	msg := NewMessageData(fromUserData, params.ToId, params.Msg)
+	msg := NewMessageData(fromUserData.Id, params.ToId, params.Msg)
 	err := DBAddMessageUtil(ctx, mongoInst, msg)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
