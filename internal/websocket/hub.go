@@ -98,6 +98,7 @@ func (hub *WsHub) Run() {
 				})
 				if len(res) == 1 {
 					// first client of the user is connected -> user is online now
+
 					subs, _ := hub.statusSubscribers.Get(c.uid) //[c.uid]
 					for sub, _ := range subs {
 						hub.notifyClients(sub.uid, NewOnlineStatusChangeEvent(c.uid, true))
