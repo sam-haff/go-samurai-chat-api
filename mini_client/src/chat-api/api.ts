@@ -1,8 +1,6 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, type Auth } from "firebase/auth";
-import type firebase from "firebase/compat/app";
 import { initWSChatClient, WsOnlineStatusChange, type WSCallback, type WSChatClient } from "./websocket_api";
-import Chat from "../routes/app/Chat.svelte";
 
 export enum ApiRespCode{
 	Success                         = 0,

@@ -1,9 +1,10 @@
-# Go REST API for mobile application
+# Go REST API for the chat web application
 API and services for the chat web application. Application is live at https://samuraichat.net (frontend code is in <em>./mini_client</em>).
 ___
 **Stack:**
 - Go
 - Gin
+- Gorilla WebSocket
 - Go native tests + Testify
 - MongoDB
 - Firebase Auth
