@@ -1,5 +1,5 @@
 # Go REST API for the chat web application
-API and services for the chat web application. Application is live at https://samuraichat.net (frontend code is in <em>./mini_client</em>). \
+API and services for the chat web application. Application is live at https://samuraichat.net (frontend code is in <em>./mini_client</em>). 
 
 ![app_gif_true_sz](https://github.com/user-attachments/assets/5d3d14e3-29ca-47fb-8ded-8c8488dc929c)
 ___
