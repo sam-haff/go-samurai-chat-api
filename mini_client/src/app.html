@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap" rel="stylesheet">
+
+       <!-- <meta name="viewport" content="width=device-width, user-scalable=no" /> -->
+        <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />-->
+        <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no,user-scalable=0, viewport-fit=cover"/>
+		%sveltekit.head%
+
+        <script>
+            function adjustHeight() {
+                document.body.style.height = `${window.innerHeight}px`;
+
+                setTimeout(function () {
+                    document.body.style.height = `${window.innerHeight}px`;
+                }, 50);
+
+                setTimeout(function () {
+                    document.body.style.height = `${window.innerHeight}px`;
+                }, 250);
+            }
+            window.addEventListener('resize', adjustHeight);
+
+            setTimeout(adjustHeight, 50); 
+            setTimeout(adjustHeight, 250); 
+        </script>
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div class="overflow-hidden content" style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

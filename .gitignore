@@ -4,4 +4,7 @@
 *.pem
 *.tar
 *.out
+coverage*
 /images
+/admin_scripts
+fly.toml

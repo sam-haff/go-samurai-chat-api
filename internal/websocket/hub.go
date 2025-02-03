@@ -44,6 +44,8 @@ func hash(n uint64) uint64 {
 }
 
 func NewWsHub(auth auth.Auth, mongoDBInst *database.MongoDBInstance) WsHub {
+	// use custom sharding function because default one will do a lot of redudant ops(convert to string/alloc->hash it char by char)
+	// TODO: remove this map?
 	clients := cmap.NewWithCustomShardingFunction[*WsClient, bool](func(key *WsClient) uint32 {
 		return uint32((hash(uint64(uintptr(unsafe.Pointer(key))))) % 32)
 	})
@@ -97,9 +99,9 @@ func (hub *WsHub) Run() {
 					return append(v, c)
 				})
 				if len(res) == 1 {
-					// first client of the user is connected -> user is online now
+					// first user's client is connected -> user is online now
 
-					subs, _ := hub.statusSubscribers.Get(c.uid) //[c.uid]
+					subs, _ := hub.statusSubscribers.Get(c.uid)
 					for sub, _ := range subs {
 						hub.notifyClients(sub.uid, NewOnlineStatusChangeEvent(c.uid, true))
 					}
@@ -132,7 +134,7 @@ func (hub *WsHub) Run() {
 				if !ok {
 					continue
 				}
-				go h(hub, &event) // TODO: process with goroutine
+				go h(hub, &event)
 			}
 		}
 	}

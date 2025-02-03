@@ -1,5 +1,5 @@
 # Go REST API for mobile application
-REST API written in Golang for the [chat application](https://github.com/sam-haff/samurai-chat-app).
+API and services for the chat web application. Application is live at https://samuraichat.net (frontend code is in <em>./mini_client</em>).
 ___
 **Stack:**
 - Go
@@ -15,6 +15,7 @@ ___
 1. Create **Firebase** account
     - Create **Firebase project**
     - Activate **Authentication** component for the project
+    - Activate **Cloud Messaging** component for the project
     - Download service account credentials file from **Project settings->Service accounts->Generate new private key**
     - Copy the file to the project root
 2. Create **MongoDB Atlas** account
@@ -42,3 +43,14 @@ cd ..
 cd images
 docker run -p 8080 -d go-chat-app-api
 ~~~
+
+### Web Client
+Run server:
+~~~
+cd mini_client
+npm run dev -- --port 80
+~~~
+You can now access the client on <em>http://localhost:80</em>
+
+
+

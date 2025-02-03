@@ -1,0 +1,36 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+.kaushan-script-regular {
+  font-family: "Kaushan Script", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+.content {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0;
+    margin: 0;
+    min-height: 100vh; /* Ensures the content area is at least as tall as the viewport */
+    display: flex;
+    flex-direction: column;
+}
+img {
+    image-rendering: auto;
+}
+@-moz-document url-prefix() {
+  .font-medium {
+    font-weight: 600;
+    font-size-adjust:0.5;
+  }
+}
