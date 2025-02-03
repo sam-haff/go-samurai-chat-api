@@ -15,6 +15,7 @@ ___
 1. Create **Firebase** account
     - Create **Firebase project**
     - Activate **Authentication** component for the project
+    - Active **Cloud Messaging** component for the project
     - Download service account credentials file from **Project settings->Service accounts->Generate new private key**
     - Copy the file to the project root
 2. Create **MongoDB Atlas** account
@@ -25,7 +26,7 @@ ___
  You can look at the **deploy** job in the .github/workflows/workflow.yml for the example.
 
 ### Local server
-If you want to run locally, you are still required to perform the first step from the instructions for **Remote server** setup. Then:
+If you want to run locally, you are still required to perform the first step(unfortunately, no fully local setup for FirebaseAuth and FCM is possible) from the instructions for **Remote server** setup. Then:
 1. Launch local mongodb:
 ~~~
 cd test_mongodb
