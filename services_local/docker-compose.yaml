@@ -16,6 +16,7 @@ services:
       - 8081:8080
   ws:
     depends_on:
+      - presence
       - nats
     image: chat-ws
     build: ../services_docker/dockerfiles/ws_service.Dockerfile

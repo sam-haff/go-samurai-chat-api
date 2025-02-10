@@ -18,6 +18,7 @@ export enum ApiRespCode{
 	Failure                         = 12 //next code //cant be returned from a server yet
 };
 const apiUrl = "http://127.0.0.1:8080";
+const uploadEndpoint = "http://127.0.0.1:8081";
 
 export class ApiChatUser {
     email: string;
@@ -188,7 +189,7 @@ async function apiUpdateAvatarFile(auth: Auth, file: File) : Promise<ApiResp> {
         r.readAsArrayBuffer(file)
         r.onload = async function() {
             resolve(await getApiRespResult(await fetch(
-                apiUrl + '/updateavatarfile',
+                uploadEndpoint + '/updateavatarfile',
                 {
                     method: "POST",
                     body: r.result,
