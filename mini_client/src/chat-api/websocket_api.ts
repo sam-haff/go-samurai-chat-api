@@ -1,7 +1,7 @@
 import type { Auth } from "firebase/auth";
 import type { ApiChatMessage, ApiResp } from "./api";
 
-const endpoint = "ws://127.0.0.1:80/ws";
+const endpoint = "ws://127.0.0.1:8082/ws";
 
 enum WSChatEventType{
     NewMessage = 0,

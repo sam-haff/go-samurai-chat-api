@@ -37,6 +37,7 @@ func handleWs(ctx *gin.Context) {
 	}
 	val, ok := ctx.Get(CtxVarHub) // TODO: must get
 	if !ok {
+		fmt.Printf("Failed, no vars set \n")
 		comm.AbortBadRequest(ctx, "Internal error", comm.CodeInvalidArgs)
 		return
 	}
@@ -44,11 +45,12 @@ func handleWs(ctx *gin.Context) {
 	hub := val.(*WsHub)
 	authToken, err := hub.auth.VerifyToken(ctx, params.Token) // TODO: move to middleware?
 	if err != nil {
-		comm.AbortBadRequest(ctx, "Not authenticated", comm.CodeNotAuthenticated)
+		comm.AbortUnauthorized(ctx, "Not authenticated", comm.CodeNotAuthenticated)
 		return
 	}
 
 	if len(hub.getClients(authToken.UID)) > HUB_MAX_CLIENTS_PER_USER {
+		fmt.Printf("Too much connections by client \n")
 		comm.AbortBadRequest(ctx, "Reached max clients per user", comm.CodeInvalidArgs)
 		return
 	}
@@ -101,13 +103,16 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 	}
 
 	e.origin.responses <- commNewWsEventJSON(
+		e.origin.uid,
 		WsEvent_SendMessageRequest,
 		true,
 		e.event.Id,
 		*comm.NewApiResponseWithJson("Success", comm.CodeSuccess, msg),
 	)
 
-	targetClients := hub.getClients(msg.ToId)
+	// TODO: send event for broadcasting using nats
+
+	/*targetClients := hub.getClients(msg.ToId)
 	senderClients := hub.getClients(e.origin.uid)
 	clients := make([]*WsClient, 0, len(targetClients)+len(senderClients))
 	if targetClients != nil {
@@ -115,16 +120,30 @@ func handleSendMessage(hub *WsHub, e *WsServerEvent) {
 	}
 	if (msg.ToId != e.origin.uid) && (senderClients != nil) {
 		clients = append(clients, senderClients...)
+	}*/
+
+	recipients := []string{msg.ToId, e.origin.uid}
+	for _, uid := range recipients {
+		event := commNewWsEventJSON(
+			uid,
+			WsEvent_NewMessageEvent,
+			false,
+			e.event.Id,
+			*comm.NewApiResponseWithJson("New message", comm.CodeSuccess, msg),
+		)
+		eventBytes, _ := json.Marshal(event)
+		hub.NATSConn.Publish(NATSWsEventBroadcast, eventBytes)
+
 	}
 
-	for _, cl := range clients {
+	/*for _, cl := range clients {
 		cl.responses <- commNewWsEventJSON(
 			WsEvent_NewMessageEvent,
 			false,
 			e.event.Id,
 			*comm.NewApiResponseWithJson("New message", comm.CodeSuccess, msg),
 		)
-	}
+	}*/
 }
 
 type CheckOnlineParams struct {
@@ -135,6 +154,7 @@ func handleSubscribeOnlineStatus(hub *WsHub, e *WsServerEvent) {
 	params := CheckOnlineParams{}
 	b, _ := e.event.Obj.MarshalJSON()
 	err := json.Unmarshal(b, &params)
+
 	if err != nil {
 		e.origin.responses <- commNewWsEvent(
 			WsEvent_OnlineStatusSubscribeRequest,
@@ -155,35 +175,17 @@ func handleSubscribeOnlineStatus(hub *WsHub, e *WsServerEvent) {
 		return
 	}
 
-	isOnline := hub.isUserOnline(params.Uid)
-	hub.notifyClients(e.origin.uid, NewOnlineStatusChangeEvent(params.Uid, isOnline))
+	e.origin.subscribeOnOnlineStatusNATS(params.Uid)
 
-	hub.statusSubscribers.Upsert(params.Uid, nil, func(exist bool, valueInMap, newValue map[*WsClient]bool) map[*WsClient]bool {
-		if !exist || valueInMap == nil {
-			m := make(map[*WsClient]bool)
-			m[e.origin] = true
-			return m
-		}
-		m := make(map[*WsClient]bool, len(valueInMap)) // clone for safe get
-		for k, v := range valueInMap {
-			m[k] = v
-		}
-		m[e.origin] = true
-		return m
-	})
-	e.origin.subscribedToLock.Lock()
-	if e.origin.subscribedTo == nil {
-		e.origin.responses <- commNewWsEvent(
-			WsEvent_OnlineStatusSubscribeRequest,
-			true,
-			e.event.Id,
-			*comm.NewApiResponse("Client state is invalid", comm.CodeInvalidArgs),
-		)
-		e.origin.subscribedToLock.Unlock()
-		return
-	}
-	e.origin.subscribedTo[params.Uid] = true
-	e.origin.subscribedToLock.Unlock()
+	isOnline := queryPresenceOnlineStatus(params.Uid)
+	hub.notifyClients(e.origin.uid, NewOnlineStatusChangeEvent(e.origin.uid, params.Uid, isOnline)) // TODO: notify only caller
+	//event := NewOnlineStatusChangeEvent(e.origin.uid, params.Uid, isOnline)
+	//eventBytes, _ := json.Marshal(event)
+	// Ideally, we need to only notify only the origin
+	// Use case: 1 user sits on the 2 devices. Addes new contact from 1st one,
+	// it is automatically added on the 2nd device(potentially, on another hub).
+	// Ideally second device should then call subscribtion request and then he
+	//hub.NATSConn.Publish("wsevent_broadcast", eventBytes)
 
 	e.origin.responses <- commNewWsEvent(
 		WsEvent_OnlineStatusSubscribeRequest,
@@ -193,6 +195,8 @@ func handleSubscribeOnlineStatus(hub *WsHub, e *WsServerEvent) {
 	)
 }
 
+// Deprecated: uses only single instance of hub, doesn't query all the hubs.
+// Now the way is to query <presence> service(/online/:uid route).
 func handleCheckOnline(hub *WsHub, e *WsServerEvent) {
 	params := CheckOnlineParams{}
 	objBytes, _ := e.event.Obj.MarshalJSON() // TODO: check err
@@ -227,6 +231,7 @@ func handleCheckOnline(hub *WsHub, e *WsServerEvent) {
 	}{isOnline}
 
 	e.origin.responses <- commNewWsEventJSON(
+		e.origin.uid,
 		WsEvent_SendMessageRequest,
 		true,
 		e.event.Id,

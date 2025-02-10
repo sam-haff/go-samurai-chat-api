@@ -19,10 +19,11 @@ func commNewWsEvent(eventType int, isResponse bool, eventId string, resp comm.Ap
 	}
 }
 
-func commNewWsEventJSON(eventType int, isResponse bool, eventId string, resp comm.ApiResponseWithJson) WsEvent {
+func commNewWsEventJSON(toUid string, eventType int, isResponse bool, eventId string, resp comm.ApiResponseWithJson) WsEvent {
 	b, _ := json.Marshal(resp)
 
 	return WsEvent{
+		To:         toUid,
 		EventType:  eventType,
 		IsResponse: isResponse,
 		Id:         eventId,

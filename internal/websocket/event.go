@@ -13,6 +13,7 @@ const (
 )
 
 type WsEvent struct {
+	To         string          `json:"to_uid"`
 	EventType  int             `json:"event_type"`
 	Id         string          `json:"id"` //uuid
 	Obj        json.RawMessage `json:"obj"`
@@ -29,7 +30,7 @@ type WsOnlineStatus struct {
 	Online bool   `json:"online"`
 }
 
-func NewOnlineStatusChangeEvent(targetUid string, online bool) WsEvent {
+func NewOnlineStatusChangeEvent(forUid string, targetUid string, online bool) WsEvent {
 	obj := WsOnlineStatus{
 		Uid:    targetUid,
 		Online: online,
@@ -37,6 +38,7 @@ func NewOnlineStatusChangeEvent(targetUid string, online bool) WsEvent {
 	b, _ := json.Marshal(&obj)
 
 	return WsEvent{
+		To:         forUid,
 		EventType:  WsEvent_OnlineStatusChangeEvent,
 		Id:         "", // TODO: ???
 		IsResponse: false,

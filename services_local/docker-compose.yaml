@@ -1,0 +1,30 @@
+services:
+  api:
+    image: chat-api
+    build: ../services_docker/dockerfiles/api_service.Dockerfile
+    ports:
+      - 8080:8080
+  presence:
+    depends_on:
+      - nats
+    image: chat-presence
+    build: ../services_docker/dockerfiles/service_service.Dockerfile
+  upload:
+    image: chat-upload
+    build: ../services_docker/dockerfiles/upload_service.Dockerfile
+    ports:
+      - 8081:8080
+  ws:
+    depends_on:
+      - nats
+    image: chat-ws
+    build: ../services_docker/dockerfiles/ws_service.Dockerfile
+    ports:
+      - 8082:8080
+  nats:
+    image: nats:latest
+    command: --user admin --pass admin
+    ports:
+      - 4222:4222
+      - 6222:6222
+      - 8222:8222

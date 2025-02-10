@@ -5,10 +5,14 @@ package websocket
 // handles subscriptions
 
 import (
+	"encoding/json"
 	"go-chat-app-api/internal/auth"
 	cmap "go-chat-app-api/internal/concurrent-map"
 	"go-chat-app-api/internal/database"
+	"go-chat-app-api/internal/presence"
 	"unsafe"
+
+	"github.com/nats-io/nats.go"
 )
 
 const (
@@ -21,6 +25,7 @@ type WsHandler func(*WsHub, *WsServerEvent)
 type WsHub struct {
 	mongoDBInst *database.MongoDBInstance
 	auth        auth.Auth
+	NATSConn    *nats.Conn
 
 	register   chan *WsClient
 	unregister chan *WsClient
@@ -43,7 +48,7 @@ func hash(n uint64) uint64 {
 	return c * xorshift(p*xorshift(n, 32), 32)
 }
 
-func NewWsHub(auth auth.Auth, mongoDBInst *database.MongoDBInstance) WsHub {
+func NewWsHub(auth auth.Auth, mongoDBInst *database.MongoDBInstance, natsConn *nats.Conn) WsHub {
 	// use custom sharding function because default one will do a lot of redudant ops(convert to string/alloc->hash it char by char)
 	// TODO: remove this map?
 	clients := cmap.NewWithCustomShardingFunction[*WsClient, bool](func(key *WsClient) uint32 {
@@ -54,6 +59,7 @@ func NewWsHub(auth auth.Auth, mongoDBInst *database.MongoDBInstance) WsHub {
 	hub := WsHub{
 		auth:              auth,
 		mongoDBInst:       mongoDBInst,
+		NATSConn:          natsConn,
 		register:          make(chan *WsClient, 32),
 		unregister:        make(chan *WsClient, 32),
 		events:            make(chan WsServerEvent, 64),
@@ -64,6 +70,22 @@ func NewWsHub(auth auth.Auth, mongoDBInst *database.MongoDBInstance) WsHub {
 	}
 	hub.handlers[WsEvent_SendMessageRequest] = handleSendMessage
 	hub.handlers[WsEvent_OnlineStatusSubscribeRequest] = handleSubscribeOnlineStatus
+
+	natsConn.Subscribe(NATSWsEventBroadcast, func(msg *nats.Msg) {
+		event := WsEvent{}
+		eventBytes := msg.Data
+		err := json.Unmarshal(eventBytes, &event)
+		if err != nil {
+		}
+
+		clients, ok := hub.clientsByUid.Get(event.To)
+		if !ok {
+			return
+		}
+		for _, c := range clients {
+			c.responses <- event
+		}
+	})
 
 	return hub
 }
@@ -93,25 +115,19 @@ func (hub *WsHub) Run() {
 			{
 				hub.clients.Set(c, true)
 
-				res := hub.clientsByUid.Upsert(c.uid, nil, func(exist bool, valueInMap, newValue []*WsClient) []*WsClient {
+				hub.clientsByUid.Upsert(c.uid, nil, func(exist bool, valueInMap, newValue []*WsClient) []*WsClient {
 					v := make([]*WsClient, len(valueInMap))
 					copy(v, valueInMap)
 					return append(v, c)
 				})
-				if len(res) == 1 {
-					// first user's client is connected -> user is online now
 
-					subs, _ := hub.statusSubscribers.Get(c.uid)
-					for sub, _ := range subs {
-						hub.notifyClients(sub.uid, NewOnlineStatusChangeEvent(c.uid, true))
-					}
-				}
+				hub.NATSConn.Publish(presence.NATSNewChatUserConn, []byte(c.uid))
 			}
 		case c := <-hub.unregister:
 			{
 				c.unsubsribeAll(hub)
 				hub.clients.Remove(c)
-				res := hub.clientsByUid.Upsert(c.uid, nil, func(exist bool, valueInMap, newValue []*WsClient) []*WsClient {
+				hub.clientsByUid.Upsert(c.uid, nil, func(exist bool, valueInMap, newValue []*WsClient) []*WsClient {
 					res := make([]*WsClient, 0, len(valueInMap)) // clone for safe get
 					for _, cl := range valueInMap {
 						if cl != c {
@@ -120,13 +136,8 @@ func (hub *WsHub) Run() {
 					}
 					return res
 				})
-				// last user's client disconnected -> offline
-				if len(res) == 0 {
-					subs, _ := hub.statusSubscribers.Get(c.uid)
-					for sub := range subs {
-						hub.notifyClients(sub.uid, NewOnlineStatusChangeEvent(c.uid, false))
-					}
-				}
+
+				hub.NATSConn.Publish(presence.NATSLostChatUserConn, []byte(c.uid))
 			}
 		case event := <-hub.events:
 			{

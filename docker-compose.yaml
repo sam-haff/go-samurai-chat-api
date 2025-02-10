@@ -4,7 +4,7 @@ services:
     hostname: go-chat-app-api
     networks:
       - main-nw
-    # not exposing ports, because all traffic goes through nginx-server to that server via compose network
+    # not exposing ports, because all traffic goes through nginx-server via compose network
   nginx-server:
     image: go-chat-app-api-reverse-proxy
     ports:

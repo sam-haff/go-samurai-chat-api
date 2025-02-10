@@ -4,24 +4,42 @@ import (
 	"encoding/json"
 	"fmt"
 	cmap "go-chat-app-api/internal/concurrent-map"
+	"go-chat-app-api/internal/presence"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/nats-io/nats.go"
 )
 
 // websocket state(per connection)
 type WsClient struct {
-	uid              string
-	authToken        string
-	responses        chan WsEvent
-	subscribedTo     map[string]bool
-	subscribedToLock sync.Mutex // cmap.ConcurrentMap is very bad for iteration
+	uid                     string
+	authToken               string
+	responses               chan WsEvent
+	onlineSubscriptions     []nats.Subscription // subscriptions on nats broadcasted online change message(from presence service)
+	onlineSubscriptionsLock sync.Mutex
+	subscribedTo            map[string]bool
+	subscribedToLock        sync.Mutex // cmap.ConcurrentMap is very bad for iteration
 
 	conn *websocket.Conn
 	hub  *WsHub
+}
+
+func (c *WsClient) subscribeOnOnlineStatusNATS(toUid string) {
+	c.onlineSubscriptionsLock.Lock()
+	c.hub.NATSConn.Subscribe(presence.GetNATSOnlineStatusChangeSubject(toUid), func(msg *nats.Msg) {
+		if len(msg.Data) == 0 {
+			log.Print("NATS Online event is ill formed")
+			return
+		}
+
+		targetClient := c
+		targetClient.responses <- NewOnlineStatusChangeEvent(targetClient.uid, toUid, msg.Data[0] > 0)
+	})
+	c.onlineSubscriptionsLock.Unlock()
 }
 
 // clears structures for tracking subscribtions on special events for the client
