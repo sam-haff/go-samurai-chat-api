@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: depl-api-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      chat-app: api-service
+  template:
+    metadata:
+      labels:
+        chat-app: api-service
+    spec:
+      containers:
+        - name: cont-api-service
+          image: wonesir/chat-api-service
+          envFrom:
+            - configMapRef:
+                name: env-api-service
+            - secretRef:
+                name: secret-api-service
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-api-service
+spec:
+  selector:
+    chat-app: api-service
+  type: ClusterIP
+  ports:
+    - protocol: "TCP" 
+      port: 8080 # ??
+      targetPort: 8080

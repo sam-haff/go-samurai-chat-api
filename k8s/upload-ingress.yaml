@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: upload-nginx-ingress 
+  annotations:
+    nginx.ingress.kubernetes.io/upstream-hash-by: "http_x_forwarded_for" # our server is hidden behind CF
+spec:
+  ingressClassName: nginx 
+  rules:
+  #- host:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: upload-service 
+            port:
+              number: 8081 
+        path: /updateavatarfile
+        pathType: ImplementationSpecific
