@@ -17,7 +17,7 @@ import (
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
-	authRoutes.POST("/updateavatarfile", accounts.CompleteRegisteredMiddleware, handleUpdateAvatarFile) // TODO: rename path to /avatar
+	authRoutes.POST("/avatar", accounts.CompleteRegisteredMiddleware, handleUpdateAvatarFile)
 }
 
 func handleUpdateAvatarFile(ctx *gin.Context) {

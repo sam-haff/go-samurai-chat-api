@@ -13,39 +13,57 @@ services:
   #    start_period: 0s
   #    start_interval: 1s
   #    retries: 30
-
+  #
+  #
+  #
+  # proxy should be in the version for deployment,
+  # then ports for all other services should be not exposed.
+  # everything goes through proxy including load balancing.
+  # is done properly through K8S, but dont have time for impl and deploy.
+  #
+  proxy:
+    depends_on:
+      - api
+      - testws
+      - presence
+    image: chat:proxy
+    build: ../nginx/
+    ports:
+      - 8080:80
+      - 443:443
+  
   api:
     #depends_on:
     #  - mongo
-    image: chat-api
+    image: chat:api
     build: ../services_docker/dockerfiles/api_service.Dockerfile
-    ports:
-      - 8080:8080
+    #ports:
+    #  - 8080:8080
   presence:
     depends_on:
       - nats
-    image: chat-presence
+    image: chat:presence
     build: ../services_docker/dockerfiles/service_service.Dockerfile
   upload:
     #depends_on:
     #  - mongo
-    image: chat-upload
+    image: chat:upload
     build: ../services_docker/dockerfiles/upload_service.Dockerfile
-    ports:
-      - 8081:8080
-  ws:
+    #ports:
+    #  - 8081:8080
+  testws:
     depends_on:
       #- mongo
       - presence
       - nats
-    image: chat-ws
+    image: chat:ws
     build: ../services_docker/dockerfiles/ws_service.Dockerfile
-    ports:
-      - 8082:8080
+    #ports:
+    #  - 8082:8080
   nats:
     image: nats:latest
     command: --user admin --pass admin
-    ports:
-      - 4222:4222
-      - 6222:6222
-      - 8222:8222
+    #ports:
+    #  - 4222:4222
+    #  - 6222:6222
+    #  - 8222:8222

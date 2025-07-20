@@ -1,5 +1,5 @@
 # Go REST API for the chat web application
-API and services for the chat web application. Application is live at https://samuraichat.net (frontend code is in <em>./mini_client</em>). 
+API and services for the chat web application. Application is live at https://samuraichat.net (currently not functional) (frontend code is in <em>./mini_client</em>). 
 
 <img src="https://github.com/user-attachments/assets/277df0c0-5d3c-4858-8c69-e3de080db830" width=400> 
 
@@ -12,8 +12,7 @@ ___
 - Go native tests + Testify
 - NATS
 - MongoDB
-- Firebase Auth
-- FCM
+- Firebase Auth | Storage | Cloud Messaging 
 - GitHub Actions
   <br/><br/>
 ## Getting started...
@@ -38,17 +37,21 @@ If you want to run locally, you are still required to perform the first step(unf
 ~~~
 cd test_mongodb
 docker compose up
-~~~
-2. Copy your firebase credentials file to Build the API image:
-~~~
-cd scripts
-MONGODB_CONNECTION_URL=mongodb://127.0.0.1 FIREBASE_CREDS_FILE=firebase-config.json SERVER_BUILD_NUMBER=0 bash ./build_chat_api.sh
 cd ..
 ~~~
-3. Run the API server:
+2. Copy your firebase credentials file to build API services images:
 ~~~
-cd images
-docker run -p 8080 -d go-chat-app-api
+cd ./scripts
+./set_envs.sh
+./make_env_file.sh
+cd ./../services_docker/build
+./build.sh
+cd ./../..
+~~~
+3. Run :
+~~~
+cd ./services_local
+docker compose up
 ~~~
 
 ### Web Client

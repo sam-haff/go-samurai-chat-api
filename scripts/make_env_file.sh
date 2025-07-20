@@ -13,6 +13,7 @@
 # choose Drivers then in any driver step 3 is the connection string which is
 # exactly the sought value.
 
+#TODO: check other inputs
 if [[ -z "$FIREBASE_CREDS_FILE" || -z "$MONGODB_CONNECT_URL" ]]; then
   echo "Error: env vars are not set(make_env_file)"
   exit 1
@@ -21,3 +22,4 @@ fi
 echo "FIREBASE_CREDS_FILE=$FIREBASE_CREDS_FILE" >> ../.env
 echo "MONGODB_CONNECT_URL=$MONGODB_CONNECT_URL" >> ../.env
 echo "FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET" >> ../.env
+echo "NATS_URL=$NATS_URL" >> ../.env
