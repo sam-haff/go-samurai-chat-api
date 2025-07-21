@@ -28,7 +28,7 @@ func AuthMiddleware(ctx *gin.Context) {
 	if len(authComps) != 2 && authComps[0] != "Bearer" {
 		fmt.Printf("Invalid header \n")
 
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, comm.NewApiResponse("Invalid header", comm.CodeNotAuthenticated))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, comm.NewApiResponse("Invalid header", comm.CodeNotAuthenticated))
 		return
 	}
 

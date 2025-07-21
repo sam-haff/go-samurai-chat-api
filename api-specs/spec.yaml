@@ -1,0 +1,254 @@
+openapi: "3.1.0"
+info:
+  title: "Chat - OpenAPI"
+  description: "SamuraiChat API"
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8080
+security:
+  - bearerAuth: []
+
+paths:
+  /users/username/{username}:
+    get:
+      description: "Get user details by username"
+      parameters:
+        - in: path
+          name: username
+          schema:
+            $ref: '#/components/schemas/UsernameType'
+          required: true
+          description: Retrieves user using username
+      responses:
+        '200':
+          description: "User succesfully retrieved"
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/UserData'
+        '400':
+          $ref: '#/components/responses/400UserDataRetrieval'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+   
+  /users/id/{uid}:
+    get:
+      description: "Get user details by uid"
+      parameters:
+        - in: path
+          name: uid
+          schema:
+            $ref: '#/components/schemas/UidType'
+          required: true
+          description: UID, identifies user both in our system and underlying auth solution
+      responses:
+        '200':
+          description: "User succesfully retrieved"
+          content:
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/UserData'
+        '400':
+          $ref: '#/components/responses/400UserDataRetrieval'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+          
+          
+  /register:
+    post:
+      security: []
+      
+      description: "Register new user"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterParams'  
+      responses:
+        '200':
+          description: "User succesfully registered"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: 0
+                msg: "Success"
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                UsernameAlreadyRegistered:
+                  value:
+                    code: 2
+                    msg: "User already exists"
+                BackendError:
+                  value:
+                    code: 6 
+                    msg: "Backend failed to create new user with <msg>"
+                DBBackendError:
+                  value:
+                    code: 6 
+                    msg: "<msg>"
+          description: "Bad parameters or internal error"
+          
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    400UserDataRetrieval:
+      description: "Bad Request(see examples)"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            InvalidTargetUser:
+              value:
+                code: 7
+                msg: "Invalid user or user is not correctly registered"
+            InternalDBError:
+              value:
+                code: 8 
+                msg: "Cant decode data from db"
+
+    401Unauthorized:
+      description: "Unauthorized"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            UncompleteRegister:
+              value:
+                code: 7
+                msg: "User register is incomplete, action is not authorized"
+            BadHeaders:
+              value:
+                code: 8 
+                msg: "Invalid header"
+            InvalidCreds:
+              value:
+                code: 8 
+                msg: "Invalid creds"
+
+  schemas:
+    ApiResponseCode:
+      type: integer
+      oneOf:
+      - title: CodeSuccess
+        const: 0 
+        description: Successful operation
+      - title: CodeUserAlreadyRegistered
+        const: 1
+      - title: CodeUsernameTaken
+        const: 2
+        description: Tried to register username that is already taken. 
+      - title: CodeUsernameFormatNotValid
+        const: 3 
+        description: Invalid format for username
+      - title: CodeReceiverDoesNotExist
+        const: 4 
+        description: Message recipient account doesn't exist
+        deprecated: true
+      - title: CodeEmailProfileAuthInvariantBroken
+        const: 5 
+        deprecated: true
+      - title: CodeCantCreateAuthUser
+        const: 6 
+        description: Error in the auth provider
+      - title: CodeUserNotRegistered
+        const: 7 
+        description: Referenced user doesn't exitst
+      - title: CodeNotAuthenticated
+        const: 8 
+        description: User is not properly authenticated
+      - title: CodeMaximumTokensNumberReached
+        const: 9 
+        description: User has registered too much devices for notifications(FCM)
+      - title: CodeDeviceNameTooLong
+        const: 10 
+        description: Device name is too long
+      - title: CodeInvalidArgs
+        const: 11 
+        description: Invalid API input(missing parameters or fields are in invalid format, etc.)
+      
+    ApiResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        obj:
+          type: object
+          default: null
+        msg:
+          type: string
+        code:
+          $ref: '#/components/schemas/ApiResponseCode'
+        
+    RegisterParams:
+      type: object
+      additionalProperties: false
+      properties:
+        username:
+          $ref: '#/components/schemas/UsernameType'
+        email:
+          $ref: '#/components/schemas/EmailType'
+        pwd:
+          $ref: '#/components/schemas/PasswordType'
+
+    
+    UsernameType:
+      type: string
+      minLength: 4
+      maxLength: 32
+
+    EmailType:
+      type: string
+      format: email
+      maxLength: 254
+    PasswordType:
+      type: string
+      format: password
+      minLength: 6
+      maxLength: 64
+    UidType:
+      type: string
+      minLength: 10
+      maxLength: 256
+    TokenType:
+      type: string
+      minLength: 1
+      maxLength: 2049
+    BoolType:
+      type: boolean
+    UserData:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        img_url:
+          type: string
+        tokens:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/TokenType'
+        contacts:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/BoolType'
+  requestBodies:
+    RegisterParams:
+      description: "Regitration request parameters"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RegisterParams'

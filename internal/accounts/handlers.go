@@ -17,7 +17,14 @@ func RegisterUploadHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.Route
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
 	publicRoutes.POST("/register", handleRegister)
 
-	authRoutes.POST("/register/complete", handleCompleteRegister)
+	authRoutes.POST("/register/complete", handleCompleteRegister) // deprecated
+
+	// rewrite to
+	// users/me/token POST
+	// users/me/contacts POST
+	// users/me/contacts DELETE
+	// add
+	// users/me UPDATE or POST
 	authRoutes.POST("/registertoken", CompleteRegisteredMiddleware, handleRegisterToken)
 	authRoutes.POST("/addcontact", CompleteRegisteredMiddleware, handleAddContact) // TODO: use dynamic path parameter?
 	authRoutes.POST("/removecontact", CompleteRegisteredMiddleware, handleRemoveContact)
@@ -138,9 +145,9 @@ func handleRemoveContact(ctx *gin.Context) {
 
 // TODO: remove trailing spaces and check for correct username format
 type RegisterParams struct {
-	Username string `json:"username" binding:"min=4,alphanum,required"`
-	Email    string `json:"email" binding:"email,required"`
-	Pwd      string `json:"pwd" binding:"min=6,required"`
+	Username string `json:"username" binding:"min=4,max=32,alphanum,required"`
+	Email    string `json:"email" binding:"max=254,email,required"`
+	Pwd      string `json:"pwd" binding:"min=6,max=64,required"`
 }
 
 func handleRegister(ctx *gin.Context) {
