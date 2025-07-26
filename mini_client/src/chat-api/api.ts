@@ -152,12 +152,9 @@ async function apiRegister(email: string, username: string, pwd: string) : Promi
 }
 async function apiRemoveContact(auth: Auth, username: string) : Promise<ApiResp> {
     const resp = await fetch(
-        apiUrl + '/removecontact',
+        apiUrl + '/users/me/contacts/' + username,
         {
-            method: "POST",
-            body: JSON.stringify({
-                'username': username,
-            }),
+            method: "DELETE",
             headers: makeHeadersWithAuth(await auth.currentUser!.getIdToken())
         }
     );
@@ -166,12 +163,9 @@ async function apiRemoveContact(auth: Auth, username: string) : Promise<ApiResp>
 }
 async function apiAddContact(auth: Auth, username: string) : Promise<ApiResp> {
     const resp = await fetch(
-        apiUrl + '/addcontact',
+        apiUrl + '/users/me/contacts/' + username,
         {
             method: "POST",
-            body: JSON.stringify({
-                'username': username,
-            }),
             headers: makeHeadersWithAuth(await auth.currentUser!.getIdToken())
         }
     );
@@ -189,7 +183,7 @@ async function apiUpdateAvatarFile(auth: Auth, file: File) : Promise<ApiResp> {
         r.readAsArrayBuffer(file)
         r.onload = async function() {
             resolve(await getApiRespResult(await fetch(
-                uploadEndpoint + '/avatar',
+                uploadEndpoint + '/users/me/avatar',
                 {
                     method: "POST",
                     body: r.result,
@@ -225,11 +219,10 @@ async function apiSendMessage(auth: Auth, toUid: string, msg: string) : Promise<
         return makeGeneralErrorResp("Failed: not authorized");
     }
     const resp = await fetch(
-        apiUrl + "/addmessage",
+        apiUrl + "/chats/" + toUid,
         {
             method: "POST",
             body: JSON.stringify({
-                'to':toUid,
                 'text':msg,
             }),
             headers: makeHeadersWithAuth(await auth.currentUser.getIdToken())
@@ -256,20 +249,19 @@ async function apiGetChatMessages(auth: Auth, withUID: string, count: number, be
     if (!auth.currentUser) {
         return makeGeneralErrorResp("Failed: not authorized");
     }
+    const reqUrl = new URL(apiUrl + "/chats/" + withUID);
+    reqUrl.searchParams.append("limit", count.toString());
+    reqUrl.searchParams.append("before_timestamp", before.toString());
+    reqUrl.searchParams.append("inverse", "false");
+
     const resp = await fetch(
-        apiUrl + "/chat",
+        reqUrl,
         {
-            method: "POST",
-            body: JSON.stringify({
-                'with':withUID,
-                'limit':count,
-                'before_timestamp': before,
-                'inverse': false, // TODO: pass it as argument
-            }),
+            method: "GET",
             headers: makeHeadersWithAuth(await auth.currentUser.getIdToken())
         }
     );
-
+    
     return await getApiRespResult(resp);
 }
 async function apiGetUser(auth: Auth, uid: string) : Promise<ApiResp> {

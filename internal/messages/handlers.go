@@ -12,8 +12,8 @@ import (
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
-	authRoutes.POST("/addmessage", accounts.CompleteRegisteredMiddleware, handleAddMessage)
-	authRoutes.POST("/chat", accounts.CompleteRegisteredMiddleware, handleGetChat)
+	authRoutes.POST("/chats/:with", accounts.CompleteRegisteredMiddleware, handleAddMessage)
+	authRoutes.GET("/chats/:with", accounts.CompleteRegisteredMiddleware, handleGetSingleChat)
 	authRoutes.GET("/chats", accounts.CompleteRegisteredMiddleware, handleGetChats)
 }
 
@@ -38,12 +38,18 @@ func handleGetChats(ctx *gin.Context) {
 
 const (
 	MaxMessageLength = 4096
-	MaxIdLength      = 1024
+	MaxIdLength      = 256
 )
 
 type AddMessageParams struct {
 	Msg  string `json:"text" binding:"min=1,max=4096,required"`
-	ToId string `json:"to" binding:"min=1,max=1024,required"`
+	ToId string `json:"to" binding:"min=1,max=256,required"`
+}
+type AddMessageUriParams struct {
+	ToId string `uri:"to" binding:"min=1,max=256,required"`
+}
+type AddMessageJsonParams struct {
+	Msg string `json:"text" binding:"min=1,max=4096,required"`
 }
 
 type Ids []string
@@ -59,8 +65,16 @@ func handleAddMessage(ctx *gin.Context) {
 		comm.AbortUnauthorized(ctx, "Invalid creds", comm.CodeNotAuthenticated)
 		return
 	}
-	params := AddMessageParams{}
-	if err := ctx.ShouldBind(&params); err != nil {
+
+	uriParams := AddMessageUriParams{}
+	if err := ctx.ShouldBind(&uriParams); err != nil {
+		comm.AbortFailedBinding(ctx, err)
+		return
+	}
+	withUid := uriParams.ToId
+
+	jsonParams := AddMessageJsonParams{}
+	if err := ctx.ShouldBind(&jsonParams); err != nil {
 		comm.AbortFailedBinding(ctx, err)
 		return
 	}
@@ -70,11 +84,11 @@ func handleAddMessage(ctx *gin.Context) {
 	// TODO: set userdata in CompleteRegisteredMiddleware to avoid duplicate requests
 	fromUserData := ctx.MustGet(accounts.CtxVarUserData).(accounts.UserData)
 	toUserData := accounts.UserData{}
-	if !accounts.DBGetUserData(ctx, params.ToId, &toUserData) {
+	if !accounts.DBGetUserData(ctx, withUid, &toUserData) {
 		return
 	}
 
-	msg := NewMessageData(fromUserData.Id, params.ToId, params.Msg)
+	msg := NewMessageData(fromUserData.Id, withUid, jsonParams.Msg)
 	err := DBAddMessageUtil(ctx, mongoInst, msg)
 	if err != nil {
 		respMsg := fmt.Sprintf("Failed to write messages to db with: %s", err.Error())
@@ -107,13 +121,20 @@ type GetChatParams struct {
 	Inverse         bool   `json:"inverse"`
 }
 
-func handleGetChat(ctx *gin.Context) {
+type GetSingleChatParams struct {
+	Limit           int   `json:"limit" form:"limit" binding:"max=1024"`
+	BeforeTimeStamp int64 `json:"before_timestamp" form:"before_timestamp"`
+	Inverse         bool  `json:"inverse" form:"inverse"`
+}
+
+func handleGetSingleChat(ctx *gin.Context) {
 	userId := ctx.MustGet(auth.CtxVarUserId).(string) // 500 if no auth middleware
 	if len(userId) == 0 {
 		return
 	}
 
-	params := GetChatParams{}
+	withUid := ctx.Param("with") // TODO: make struct with validation tags
+	params := GetSingleChatParams{}
 	if err := ctx.ShouldBind(&params); err != nil {
 		fmt.Printf("Invalid params\n")
 		comm.AbortFailedBinding(ctx, err)
@@ -121,7 +142,7 @@ func handleGetChat(ctx *gin.Context) {
 	}
 
 	toUserData := accounts.UserData{}
-	if !accounts.DBGetUserData(ctx, params.With, &toUserData) { // correspondent should have valid registration
+	if !accounts.DBGetUserData(ctx, withUid, &toUserData) { // correspondent should have valid registration
 		return
 	}
 
@@ -129,7 +150,7 @@ func handleGetChat(ctx *gin.Context) {
 
 	mongoInst := ctx.MustGet(database.CtxVarMongoDBInst).(*database.MongoDBInstance)
 	var messages []MessageData
-	res := DBGetMessagesUtil(ctx, mongoInst, userId, params.With, params.Limit, false, params.BeforeTimeStamp, &messages)
+	res := DBGetMessagesUtil(ctx, mongoInst, userId, withUid, params.Limit, false, params.BeforeTimeStamp, &messages)
 	if res == UtilStatusNotFound {
 		comm.AbortBadRequest(ctx, "Failed to fetch messages", comm.CodeInvalidArgs)
 		return

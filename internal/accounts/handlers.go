@@ -19,15 +19,10 @@ func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup
 
 	authRoutes.POST("/register/complete", handleCompleteRegister) // deprecated
 
-	// rewrite to
-	// users/me/token POST
-	// users/me/contacts POST
-	// users/me/contacts DELETE
-	// add
-	// users/me UPDATE or POST
-	authRoutes.POST("/registertoken", CompleteRegisteredMiddleware, handleRegisterToken)
-	authRoutes.POST("/addcontact", CompleteRegisteredMiddleware, handleAddContact) // TODO: use dynamic path parameter?
-	authRoutes.POST("/removecontact", CompleteRegisteredMiddleware, handleRemoveContact)
+	authRoutes.POST("/users/me/tokens", CompleteRegisteredMiddleware, handleRegisterToken)
+
+	authRoutes.POST("/users/me/contacts/:username", CompleteRegisteredMiddleware, handleAddContact)
+	authRoutes.DELETE("/users/me/contacts/:username", CompleteRegisteredMiddleware, handleRemoveContact)
 
 	authRoutes.GET("/users/id/:uid", CompleteRegisteredMiddleware, handleGetUser)
 	authRoutes.GET("/users/username/:username", CompleteRegisteredMiddleware, handleGetUserByUsername)
@@ -44,7 +39,7 @@ func CreateDBUserRecords(ctx *gin.Context, userData UserData) bool {
 	return true
 }
 func handleGetUser(ctx *gin.Context) {
-	targetUserId := ctx.Param("uid")
+	targetUserId := ctx.Param("uid") // TODO: make struct with validation tags
 
 	userData := UserData{}
 	if !DBGetUserData(ctx, targetUserId, &userData) {
@@ -54,7 +49,7 @@ func handleGetUser(ctx *gin.Context) {
 	comm.GenericOKJSON(ctx, userData)
 }
 func handleGetUserByUsername(ctx *gin.Context) {
-	targetUsername := ctx.Param("username")
+	targetUsername := ctx.Param("username") // TODO: make struct with validation tags
 
 	userData := UserData{}
 	if !DBGetUserDataByUsername(ctx, targetUsername, &userData) {
@@ -66,12 +61,12 @@ func handleGetUserByUsername(ctx *gin.Context) {
 
 type ContactParams struct {
 	// TODO: add binding rules
-	Username string `json:"username" binding:"min=4,alphanum,required"`
+	Username string `uri:"username" binding:"min=4,max=32,alphanum,required"`
 }
 
 func handleAddContact(ctx *gin.Context) {
 	params := ContactParams{}
-	if err := ctx.ShouldBind(&params); err != nil {
+	if err := ctx.ShouldBindUri(&params); err != nil {
 		comm.AbortFailedBinding(ctx, err)
 
 		return
@@ -108,7 +103,7 @@ func handleAddContact(ctx *gin.Context) {
 
 func handleRemoveContact(ctx *gin.Context) {
 	params := ContactParams{}
-	if err := ctx.ShouldBind(&params); err != nil {
+	if err := ctx.ShouldBindUri(&params); err != nil {
 		comm.AbortFailedBinding(ctx, err)
 
 		return
@@ -144,6 +139,7 @@ func handleRemoveContact(ctx *gin.Context) {
 }
 
 // TODO: remove trailing spaces and check for correct username format
+// TODO: refactor repeatable fields with embedded structs
 type RegisterParams struct {
 	Username string `json:"username" binding:"min=4,max=32,alphanum,required"`
 	Email    string `json:"email" binding:"max=254,email,required"`
@@ -271,14 +267,14 @@ func handleRegisterToken(ctx *gin.Context) {
 	filter := bson.D{{Key: "_id", Value: userId}}
 	res := usersCollection.FindOne(ctx, filter)
 	if res.Err() != nil {
-		comm.AbortBadRequest(ctx, "Auth error", comm.CodeNotAuthenticated)
+		comm.AbortBadRequest(ctx, "Auth error", comm.CodeNotAuthenticated) // should be impossible
 		return
 	}
 
 	userData := UserData{}
 	err = res.Decode(&userData)
 	if err != nil {
-		comm.AbortBadRequest(ctx, "Failed to device data from db", comm.CodeInvalidArgs)
+		comm.AbortBadRequest(ctx, "Failed to retrieve data from db", comm.CodeInvalidArgs)
 		return
 	}
 
@@ -297,5 +293,5 @@ func handleRegisterToken(ctx *gin.Context) {
 		return
 	}
 
-	comm.OK(ctx, "Token registered", comm.CodeSuccess)
+	comm.GenericOK(ctx)
 }

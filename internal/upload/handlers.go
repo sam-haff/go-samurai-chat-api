@@ -17,7 +17,7 @@ import (
 )
 
 func RegisterHandlers(authRoutes *gin.RouterGroup, publicRoutes *gin.RouterGroup) {
-	authRoutes.POST("/avatar", accounts.CompleteRegisteredMiddleware, handleUpdateAvatarFile)
+	authRoutes.POST("/users/me/avatar", accounts.CompleteRegisteredMiddleware, handleUpdateAvatarFile)
 }
 
 func handleUpdateAvatarFile(ctx *gin.Context) {
@@ -60,7 +60,7 @@ func handleUpdateAvatarFile(ctx *gin.Context) {
 
 	bucket, err := fbStorage.DefaultBucket()
 	if err != nil {
-		comm.AbortBadRequest(ctx, "Failed to access storage bucket. "+err.Error(), comm.CodeInvalidArgs)
+		comm.AbortBadRequest(ctx, "Internal. Failed to access storage bucket. "+err.Error(), comm.CodeInvalidArgs)
 		return
 	}
 	obj := bucket.Object("user_images/" + userId + ext)
@@ -70,21 +70,21 @@ func handleUpdateAvatarFile(ctx *gin.Context) {
 
 	_, err = io.Copy(w, bytes.NewBuffer(data))
 	if err != nil {
-		comm.AbortBadRequest(ctx, "Failed to upload data to storage. "+err.Error(), comm.CodeInvalidArgs)
+		comm.AbortBadRequest(ctx, "Internal. Failed to upload data to storage. "+err.Error(), comm.CodeInvalidArgs)
 		return
 	}
 	err = w.Close()
 	if err != nil {
-		comm.AbortBadRequest(ctx, "Failed to upload data to storage on close. "+err.Error(), comm.CodeInvalidArgs)
+		comm.AbortBadRequest(ctx, "Internal. Failed to upload data to storage on close. "+err.Error(), comm.CodeInvalidArgs)
 		return
 	}
 	if err := obj.ACL().Set(ctx, rawstorage.AllUsers, rawstorage.RoleReader); err != nil {
-		comm.AbortBadRequest(ctx, "Failed to set ACL. "+err.Error(), comm.CodeInvalidArgs)
+		comm.AbortBadRequest(ctx, "Internal. Failed to set ACL. "+err.Error(), comm.CodeInvalidArgs)
 		return
 	}
 	attrs, err := obj.Attrs(ctx)
 	if err != nil {
-		comm.AbortBadRequest(ctx, "Failed to retrive attributes. "+err.Error(), comm.CodeInvalidArgs)
+		comm.AbortBadRequest(ctx, "Internal. Failed to retrieve attributes. "+err.Error(), comm.CodeInvalidArgs)
 		return
 	}
 
@@ -92,7 +92,7 @@ func handleUpdateAvatarFile(ctx *gin.Context) {
 	update := bson.D{{Key: "$set", Value: bson.D{{Key: "img_url", Value: attrs.MediaLink}}}}
 	_, err = mongoInst.Collection(database.UsersCollection).UpdateOne(ctx, filter, update)
 	if err != nil {
-		comm.AbortBadRequest(ctx, "Failed to update url", comm.CodeInvalidArgs)
+		comm.AbortBadRequest(ctx, "Internal. Failed to update url", comm.CodeInvalidArgs)
 		return
 	}
 

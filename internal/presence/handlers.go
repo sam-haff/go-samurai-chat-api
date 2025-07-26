@@ -28,7 +28,7 @@ func handleIsOnline(ctx *gin.Context) {
 	}
 
 	presenceState := ctx.MustGet(CtxVarPresence).(*State)
-	uid := ctx.Param("uid")
+	uid := ctx.Param("uid") // TODO: make struct with validation tags
 
 	if uid == "" {
 		ctx.AbortWithStatus(400)
