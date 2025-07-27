@@ -1,0 +1,69 @@
+services:
+  #mongo:
+  #  image: mongo:7.0
+  #  command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+  #  ports:
+  #    - 27017:27017
+  #  extra_hosts:
+  #    - "host.docker.internal:host-gateway"
+  #  healthcheck:
+  #    test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 --quiet
+  #    interval: 5s
+  #    timeout: 30s
+  #    start_period: 0s
+  #    start_interval: 1s
+  #    retries: 30
+  #
+  proxy:
+    depends_on:
+      - api
+      - testws
+      - presence
+      - upload
+    image: nginx:alpine
+    ports:
+      - 8080:80
+      - 443:443
+    volumes:
+      - /app-certs:/certs
+      - /app-nginx/nginx.conf:/etc/nginx/nginx.conf
+  
+  api:
+    #depends_on:
+    #  - mongo
+    image: $REPO_USER/chat:api
+    #ports:
+    #  - 8080:8080
+    volumes:
+      - /app-conf:/app/conf
+  presence:
+    depends_on:
+      - nats
+    image: $REPO_USER/chat:presence
+    volumes:
+      - /app-conf:/app/conf
+  upload:
+    #depends_on:
+    #  - mongo
+    image: $REPO_USER/chat:upload
+    #ports:
+    #  - 8081:8080
+    volumes:
+      - /app-conf:/app/conf
+  testws:
+    depends_on:
+      #- mongo
+      - presence
+      - nats
+    image: $REPO_USER:ws
+    #ports:
+    #  - 8082:8080
+    volumes:
+      - /app-conf:/app/conf
+  nats:
+    image: nats:latest
+    command: --user admin --pass admin
+    #ports:
+    #  - 4222:4222
+    #  - 6222:6222
+    #  - 8222:8222

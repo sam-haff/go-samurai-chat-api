@@ -11,9 +11,6 @@ COPY ./../../cmd ./cmd
 
 RUN go build -o chat-api ./cmd/api_service
 
-COPY ./../../firebase-adminsdk-config.json ./conf/
-COPY ./../../.env ./conf/
-
 EXPOSE 8080
 
 CMD ["./chat-api"]

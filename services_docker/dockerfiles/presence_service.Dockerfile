@@ -11,8 +11,8 @@ COPY ../../cmd ./cmd
 
 RUN go build -o chat-presence ./cmd/presence_service
 
-COPY ../../firebase-adminsdk-config.json ./
-COPY ../../.env ./
+COPY ../../firebase-adminsdk-config.json ./conf/
+COPY ../../.env ./conf/
 
 EXPOSE 8080
 

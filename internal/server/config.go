@@ -7,6 +7,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const DEFAULT_ENV_PATH = "./conf/.env"
+
 type Config struct {
 	RequireNATS           bool
 	NATSUrl               string
@@ -18,7 +20,7 @@ type Config struct {
 func ReadConfigFromEnv() Config {
 	cfg := Config{RequireNATS: false}
 
-	godotenv.Load()
+	godotenv.Load(DEFAULT_ENV_PATH)
 	natsUrl, ok := os.LookupEnv("NATS_URL") // optional
 	credsFileName, ok := os.LookupEnv("FIREBASE_CREDS_FILE")
 	if !ok {

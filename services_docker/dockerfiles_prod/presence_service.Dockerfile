@@ -9,11 +9,8 @@ RUN go mod download
 COPY ../../internal ./internal
 COPY ../../cmd ./cmd
 
-RUN go build -o chat-ws ./cmd/ws_service
-
-COPY ../../firebase-adminsdk-config.json ./conf/
-COPY ../../.env ./conf/
+RUN go build -o chat-presence ./cmd/presence_service
 
 EXPOSE 8080
 
-CMD ["./chat-ws"]
+CMD ["./chat-presence"]

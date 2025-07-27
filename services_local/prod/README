@@ -1,0 +1,4 @@
+Assumes /app-certs directroy with fullchain.pem and privkey.pem SSL certificates.
+Assumes /app-nginx directory with nginx.conf, example is in repo/nginx/nginx/prod/nginx.conf (should be modified to correspond your url, ssl certificates should also correspond to your url)
+Assumes /app-conf directory with .env and service-account.json. .env is made with repo/scripts/make_env_file.sh. service-account.json is service account creds file from corresponding Firebase project.
+Docker compose file is generated using ./gen.sh script, with REPO_USER env set, for example: REPO_USER=username ./gen.sh.

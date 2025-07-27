@@ -1,0 +1,1 @@
+cat docker-compose.template | envsubst > docker-compose.yaml

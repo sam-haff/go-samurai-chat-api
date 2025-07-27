@@ -9,6 +9,66 @@ security:
   - bearerAuth: []
 
 paths:
+  /users/me/avatar:
+    post:
+      description: "Upload and apply new avatar. Only supports image/jpeg and image/png."
+      requestBody:
+        content:
+          image/*: 
+              schema:
+                type: string
+                format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/200GenericOK'
+        '400':
+          $ref: '#/components/responses/400Avatar'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        
+  /users/me/contacts/:username:
+    post:
+      description: "Add new user contact"
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UsernameType'
+      responses:
+        '200':
+          $ref: '#/components/responses/200GenericOK'
+        '400':
+          $ref: '#/components/responses/400AddContact'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+    delete:
+      description: "Remove contact"
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UsernameType'
+      responses:
+        '200':
+          $ref: '#/components/responses/200GenericOK'
+
+
+  /users/me/tokens:
+    post:
+      description: "Register new device token for push notifications(FCM)"
+      requestBody:
+        $ref: '#/components/requestBodies/TokenRegisterParams'
+      responses:
+        '200':
+          $ref: '#/components/responses/200GenericOK'
+        '400':
+          $ref: '#/components/responses/400TokenRegister'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+
   /users/username/{username}:
     get:
       description: "Get user details by username"
@@ -21,11 +81,7 @@ paths:
           description: Retrieves user using username
       responses:
         '200':
-          description: "User succesfully retrieved"
-          content:
-            application/json:
-              schema: 
-                $ref: '#/components/schemas/UserData'
+          $ref: "#/components/responses/200UserDataRetrieval"
         '400':
           $ref: '#/components/responses/400UserDataRetrieval'
         '401':
@@ -43,17 +99,104 @@ paths:
           description: UID, identifies user both in our system and underlying auth solution
       responses:
         '200':
-          description: "User succesfully retrieved"
-          content:
-            application/json:
-              schema: 
-                $ref: '#/components/schemas/UserData'
+          $ref: "#/components/responses/200UserDataRetrieval"
         '400':
           $ref: '#/components/responses/400UserDataRetrieval'
         '401':
           $ref: '#/components/responses/401Unauthorized'
+  /chats:
+    get:
+      deprecated: false
+      responses:
+        '200':
+          $ref: '#/components/responses/200DialogMessagesRetrieval'
+        '400':
+          $ref: '#/components/responses/400DialogMessagesRetrieval'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+  /chats/{with}:
+    post:
+      description: "Sends a message to user with uid <with>"
+      parameters:
+        - name: with
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UidType'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageData'
+      responses:
+        '200':
+          $ref: "#/components/responses/200GenericOK"
+        '400':
+          $ref: '#/components/responses/400SendMessage'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+    get:
+      description: "Retrieves a page of chat messages between auth user and user with ID {with}."
+      parameters:
+        - name: with
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UidType'
+          description: "UID of user on another side of the chat"
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: before_timestamp
+          in: query
+          required: true
+          description: "Request only returns messages with created_at less than <before_timestamp>"
+          schema:
+            $ref: '#/components/schemas/TimestampType'
+        - name: inversed
+          in: query
+          description: "Returns messages in inversed order(i.e if true, order is from latest to oldest)"
+          schema:
+            $ref: '#/components/schemas/BoolType'
           
-          
+      
+      responses:
+        '200':
+          description: "Retrieved page of chat messages('#/components/schemas/MessageArray')"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                MessagesList:
+                  value:
+                    code: 0
+                    msg: "Success"
+                    obj: [
+                      {
+                        msg_id: 'AVASsvawAWD21A_unique_per_msg_id',
+                        to: 'asAFwafvaeAAWfgmlk_recipient_user_id_example',
+                        from: 'AdsdawfAmkegnewann_sender_user_id_example',
+                        msg: 'Hello',
+                        created_at: 1753294374872,
+                        conv_id: 'AdsdawfAmkegnewann_sender_user_id_exampleasAFwafvaeAAWfgmlk_recipient_user_id_example' 
+                      },
+                      {
+                        msg_id: 'dsdsaDAkdwfndak9NAKWndfwkF2akfsw',
+                        to: 'AdsdawfAmkegnewann_sender_user_id_example',
+                        from: 'asAFwafvaeAAWfgmlk_recipient_user_id_example',
+                        msg: 'Hey:)',
+                        created_at: 1753294379249,
+                        conv_id: 'AdsdawfAmkegnewann_sender_user_id_exampleasAFwafvaeAAWfgmlk_recipient_user_id_example' 
+                      }
+                    ]
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+    
   /register:
     post:
       security: []
@@ -100,7 +243,213 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  examples:
+    ImageTypeNotSupported:
+      description: "Tried to upload image of unsupported type"
+      value:
+        code: 11
+        msg: "Image type not supported"
+    InternalError:
+      description: "Any error which message starts with 'Internal. <rest of the msg>'. Is internal system error."
+      value: 
+        code: 11
+        msg: "Internal. <rest of the msg>"
+    FailedDBTokensRetrieve:
+      description: "Internal failed to retrieve tokens from DB"
+      value: 
+        code: 11
+        msg: "Failed to retrieve data from db"
+    FailedDBTokensWrite:
+      description: "Internal failed to persist tokens in DB"
+      value: 
+        code: 11
+        msg: "Failed to write tokens to db with: <error>"
+
+    FailedDBWriteMessages:
+      description: "Internal failed to persist messages in DB"
+      value: 
+        code: 11
+        msg: "Failed to write messages to db with: <details>"
+    GenericOK:
+      description: "Generic success response"
+      value:
+        code: 0
+        msg: "Success"
+    FailedChatsRetrieval:
+      description: "Internal problem with dialogs retrieval"
+      value:
+        code: 11
+        msg: "Failed to get chats"
+    FailedValidation:
+      description: "Failed validation of the request content"
+      value:
+        code: 11
+        msg: "Failed validation: <details>"
+    InvalidTargetUser:
+      value:
+        code: 7
+        msg: "Invalid user or user is not correctly registered"
+    InternalDBError:
+      value:
+        code: 8 
+        msg: "Cant decode data from db"
+    ContactNotPresent:
+      value:
+        code: 11
+        msg: "Contact is not in the list"
+    ContactAlreadyPresent:
+      value:
+        code: 11
+        msg: "Contact is already in the list"
+    DialogsList:
+      value:
+        code: 0
+        msg: "Success"
+        obj: ["conv_id1", "conv_id2", "conv_id3"]
+    DialogMessagesList:
+      value:
+        code: 0
+        msg: "Success"
+        obj: [
+          {
+            msg_id: 'AVASsvawAWD21A_unique_per_msg_id',
+            to: 'asAFwafvaeAAWfgmlk_recipient_user_id_example',
+            from: 'AdsdawfAmkegnewann_sender_user_id_example',
+            msg: 'Hello',
+            created_at: 1753294374872,
+            conv_id: 'AdsdawfAmkegnewann_sender_user_id_exampleasAFwafvaeAAWfgmlk_recipient_user_id_example' 
+          },
+          {
+            msg_id: 'dsdsaDAkdwfndak9NAKWndfwkF2akfsw',
+            to: 'AdsdawfAmkegnewann_sender_user_id_example',
+            from: 'asAFwafvaeAAWfgmlk_recipient_user_id_example',
+            msg: 'Hey:)',
+            created_at: 1753294379249,
+            conv_id: 'AdsdawfAmkegnewann_sender_user_id_exampleasAFwafvaeAAWfgmlk_recipient_user_id_example' 
+          }
+        ]
   responses:
+# Generic
+    200GenericOK:
+      description: "Generic success response"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            $ref: '#/components/examples/GenericOK'
+# Avatar
+    400Avatar:
+      description: "Failed to upload and update avatar image"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            ImageTypeNotSupported:
+              $ref: '#/components/examples/ImageTypeNotSupported'
+# Contacts
+    400AddContact:
+      description: "Failed to add contact"
+      content:
+        application/json:
+          schema: 
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            FailedValidation:
+              $ref: '#/components/examples/FailedValidation'
+            InternalDBError:
+              $ref: '#components/examples/InternalDBError'
+            InvalidTargetUser:
+              $ref: '#/components/examples/InvalidTargetUser'
+            ContactIsAlreadyPresent:
+              $ref: '#/components/examples/ContactAlreadyPresent'
+    400RemoveContact:
+      description: "Failed to add contact"
+      content:
+        application/json:
+          schema: 
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            FailedValidation:
+              $ref: '#/components/examples/FailedValidation'
+            InternalDBError:
+              $ref: '#components/examples/InternalDBError'
+            InvalidTargetUser:
+              $ref: '#/components/examples/InvalidTargetUser'
+            ContactIsNotPresent:
+              $ref: '#/components/examples/ContactNotPresent'      
+
+# Tokens
+    400TokenRegister:
+      description: "Failed to register token"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            FailedVaildation:
+              $ref: '#/components/examples/FailedValidation'
+            FailedDBTokensRetrieval:
+              $ref: '#/components/examples/FailedDBTokensRetrieve'
+            FailedDBTokensWrite:
+              $ref: '#/components/examples/FailedDBTokensWrite'
+            
+
+# Messages
+    200DialogsListRetrieval:
+      description: "Retrieved list of auth user dialogs"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            DialogsList:
+              $ref: '#/components/examples/DialogsList'
+    400DialogMessagesRetrieval:
+      description: "Failed to retrieve list of dialogs"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            FailedChatsRetrieval:
+              $ref: '#/components/examples/FailedChatsRetrieval'
+
+
+    200DialogMessagesRetrieval:
+      description: "Retrieved page of chat messages('#/components/schemas/MessageArray')"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            MessagesList:
+              $ref: '#/components/examples/DialogMessagesList'
+    400SendMessage:
+      description: 'Request failure'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          examples:
+            InternalDBError:
+              $ref: '#/components/examples/InternalDBError'
+            InvalidTargetUser:
+              $ref: '#/components/examples/InvalidTargetUser'
+              description: 'Recipient doesnt exist'
+            FailedValidation:
+              $ref: '#/components/examples/FailedValidation'
+            FailedDBWriteMessages:
+              $ref: '#/components/examples/FailedDBWriteMessages'
+#
+# UserDataRetrieval
+    200UserDataRetrieval:
+      description: "User succesfully retrieved"
+      content:
+        application/json:
+          schema: 
+            $ref: '#/components/schemas/UserData'
     400UserDataRetrieval:
       description: "Bad Request(see examples)"
       content:
@@ -109,14 +458,11 @@ components:
             $ref: '#/components/schemas/ApiResponse'
           examples:
             InvalidTargetUser:
-              value:
-                code: 7
-                msg: "Invalid user or user is not correctly registered"
+              $ref: '#/components/examples/InvalidTargetUser'
             InternalDBError:
-              value:
-                code: 8 
-                msg: "Cant decode data from db"
+              $ref: '#/components/examples/InternalDBError'
 
+# Unauthorized
     401Unauthorized:
       description: "Unauthorized"
       content:
@@ -183,13 +529,48 @@ components:
       additionalProperties: false
       properties:
         obj:
+          oneOf:
+            - $ref: '#/components/schemas/ObjType'
+            - $ref: '#/components/schemas/MessageArray'
+            - $ref: '#/components/schemas/DialogsConvIDArray'
+            - $ref: '#/components/schemas/UserData'
           type: object
           default: null
         msg:
           type: string
         code:
           $ref: '#/components/schemas/ApiResponseCode'
-        
+    ObjType: 
+      type: object
+      default: null
+    DialogsConvIDArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/ConvIDType'
+    MessageArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/MessageData'
+
+    MessageData:
+      type: object
+      properties:
+        msg_id:
+          type: string
+          description: "Unique message id"
+        to:
+          $ref: '#/components/schemas/UidType'
+        from:
+          $ref: '#/components/schemas/UidType'
+        msg:
+          type: string
+        created_at:
+          description: "Message added to db timestamp"
+          $ref: '#/components/schemas/TimestampType'
+
+        conv_id:
+          $ref: '#/components/schemas/ConvIDType'
+
     RegisterParams:
       type: object
       additionalProperties: false
@@ -200,13 +581,20 @@ components:
           $ref: '#/components/schemas/EmailType'
         pwd:
           $ref: '#/components/schemas/PasswordType'
+    TokenRegisterParams:
+      type: object
+      additionalProperties: false
+      properties:
+        token:
+          $ref: '#/components/schemas/TokenType'
+        device_name:
+          $ref: '#/components/schemas/DeviceNameType'
 
     
     UsernameType:
       type: string
       minLength: 4
       maxLength: 32
-
     EmailType:
       type: string
       format: email
@@ -220,12 +608,26 @@ components:
       type: string
       minLength: 10
       maxLength: 256
+    ConvIDType:
+      type: string
+      minLength: 20
+      maxLength: 512
+      description: "Serves to uniquely identify the dialog between 2 users, got by concatenating both users UIDs in a sorted order"
     TokenType:
+      description: "Device token"
       type: string
       minLength: 1
       maxLength: 2049
+    DeviceNameType:
+      description: "Device name"
+      type: string
+      minLength: 1
+      maxLength: 2049 
     BoolType:
       type: boolean
+    TimestampType:
+      type: integer
+      format: int64
     UserData:
       type: object
       properties:
@@ -245,6 +647,8 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/BoolType'
+      
+    
   requestBodies:
     RegisterParams:
       description: "Regitration request parameters"
@@ -252,3 +656,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RegisterParams'
+    TokenRegisterParams:
+      description: "Required information to register token, enabling to send push notifications for the corresponding device"
+      content:
+        application/json:
+          schema: '#/components/schemas/'
